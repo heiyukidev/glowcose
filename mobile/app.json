@@ -9,10 +9,15 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.glowcose.mobile"
+      "bundleIdentifier": "app.glowcose.mobile",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "app.glowcose.mobile",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#FBF6EC",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

@@ -55,6 +55,24 @@ Boucle v0.2 : onboarding (type de diabète) → Aujourd’hui → Ajouter (coule
 
 Photo repas : `expo-image-picker`, URI locale (stub). Pas de R2 pour l’instant.
 
+### TestFlight (iOS)
+
+Config EAS : `mobile/eas.json` (`development`, `preview`, `production`).
+
+**Un compte Expo ne suffit pas.** Il faut le **Apple Developer Program** (99 $/an) et une app dans **App Store Connect** avec le bundle ID `app.glowcose.mobile`. Détail et commandes : [`mobile/README.md`](mobile/README.md#testflight-eas-build--submit).
+
+```sh
+cd mobile
+npm i -g eas-cli   # ou : npx eas-cli
+eas login
+eas init
+eas build:configure
+eas build --platform ios --profile production
+eas submit --platform ios --profile production
+```
+
+`eas init` écrit `extra.eas.projectId` dans `mobile/app.json` — à committer. Ne pas inventer d’IDs Apple. Pour le CI, une **clé API App Store Connect** (via `eas credentials`) est préférable à un Apple ID + 2FA.
+
 ## Variables d’environnement
 
 Copier `.env.example` à la racine (web) et `mobile/.env.example` vers `mobile/.env` (Expo).

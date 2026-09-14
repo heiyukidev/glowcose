@@ -33,6 +33,10 @@ yarn-error.*
 # local env files
 .env*.local
 
+# EAS / Apple credentials — never commit
+credentials.json
+secrets/
+
 # typescript
 *.tsbuildinfo
 
