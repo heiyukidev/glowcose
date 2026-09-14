@@ -1,0 +1,58 @@
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { ChevronLeft } from "lucide-react-native";
+
+import { Screen } from "@/components/screen";
+import { Disclaimer } from "@/components/disclaimer";
+import { AddReadingForm } from "@/components/add-reading-form";
+import { colors } from "@/theme";
+
+export default function AddRoute() {
+  const router = useRouter();
+
+  return (
+    <Screen>
+      <View style={styles.header}>
+        <Pressable
+          onPress={() => router.back()}
+          style={styles.back}
+          accessibilityLabel="Retour"
+        >
+          <ChevronLeft color={colors.foreground} size={22} />
+        </Pressable>
+        <View>
+          <Text style={styles.title}>Nouvelle glycémie</Text>
+          <Text style={styles.sub}>Valeur, contexte, enregistrer.</Text>
+        </View>
+      </View>
+      <AddReadingForm />
+      <Disclaimer />
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 12,
+  },
+  back: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: colors.foreground,
+    fontFamily: "Georgia",
+  },
+  sub: {
+    fontSize: 12,
+    color: colors.muted,
+  },
+});

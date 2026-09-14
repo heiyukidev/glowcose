@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "mobile": "npm --prefix mobile start",
+    "mobile:web": "npm --prefix mobile run web"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
