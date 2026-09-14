@@ -58,7 +58,6 @@ export function GlucoseChart({
     <View>
       <View style={styles.chart}>
         <View
-          pointerEvents="none"
           style={[
             styles.ref,
             {
@@ -68,7 +67,6 @@ export function GlucoseChart({
           ]}
         />
         <View
-          pointerEvents="none"
           style={[
             styles.ref,
             {
@@ -132,6 +130,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderStyle: "dashed",
     opacity: 0.7,
+    pointerEvents: "none",
   },
   legend: {
     marginTop: 10,
