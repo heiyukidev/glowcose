@@ -70,7 +70,7 @@ export function t(
     get(MESSAGES, [DEFAULT_LOCALE, key]) ??
     key;
 
-  return reduce(
+  return reduce<TranslationParams, string>(
     params,
     (translated: string, value, name) =>
       translated.replaceAll(`{{${name}}}`, String(value)),
