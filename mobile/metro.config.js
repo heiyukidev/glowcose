@@ -11,7 +11,12 @@ config.watchFolders = [
   path.join(repoRoot, "convex"),
 ];
 
-config.resolver.disableHierarchicalLookup = true;
+// Expo doctor expects hierarchical lookup (default false). This is not an
+// npm-workspaces monorepo: Next.js lives at the repo root and mobile has its
+// own node_modules. extraNodeModules still maps @glowcose/core, and
+// nodeModulesPaths keeps mobile packages first so we do not pick up the web
+// React install from the parent tree.
+config.resolver.disableHierarchicalLookup = false;
 config.resolver.nodeModulesPaths = [path.resolve(projectRoot, "node_modules")];
 config.resolver.extraNodeModules = {
   "@glowcose/core": path.join(repoRoot, "packages/core/src"),
