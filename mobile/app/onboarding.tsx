@@ -6,6 +6,7 @@ import { get, map } from "lodash";
 import {
   DIABETES_TYPE_LABELS,
   DIABETES_TYPES,
+  t,
   type DiabetesType,
 } from "@glowcose/core";
 import { Screen } from "@/components/screen";
@@ -37,8 +38,7 @@ export default function OnboardingRoute() {
       </View>
       <Text style={styles.title}>Quel diabète suivez-vous ?</Text>
       <Text style={styles.lead}>
-        Glowcose charge les couleurs et seuils correspondants. Vous pourrez
-        changer plus tard.
+        {t("onboarding.lead")}
       </Text>
       <View style={styles.list}>
         {map(DIABETES_TYPES, (type) => (

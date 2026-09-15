@@ -14,6 +14,7 @@ import { ReadingsList, todayReadings } from "@/components/readings-table";
 import { useSettings } from "@/components/settings-provider";
 import { Button } from "@/components/ui/button";
 import { DIABETES_TYPE_LABELS, readingStatus } from "@/lib/glucose";
+import { t } from "@/lib/i18n";
 
 export function TodayDashboard() {
   const { readings, ready, source } = useReadings();
@@ -40,10 +41,10 @@ export function TodayDashboard() {
       <section className="pb-4">
         <p className="text-sm capitalize text-muted-foreground">{todayLabel}</p>
         <h1 className="font-display text-3xl leading-tight tracking-tight">
-          Aujourd’hui
+          {t("home.today")}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {DIABETES_TYPE_LABELS[settings.diabetesType]} · suivi personnel
+          {DIABETES_TYPE_LABELS[settings.diabetesType]} · {t("home.personalTracking")}
         </p>
       </section>
 
@@ -53,7 +54,7 @@ export function TodayDashboard() {
         render={<Link href="/ajouter" />}
       >
         <Plus className="size-5" />
-        Ajouter une glycémie
+        {t("home.addReading")}
       </Button>
 
       {!ready ? (
@@ -65,13 +66,16 @@ export function TodayDashboard() {
         <>
           <p className="mb-3 px-1 text-sm text-muted-foreground">
             {size(today) === 0
-              ? "Pas encore de mesure aujourd’hui."
-              : `${inRangeCount} / ${size(today)} dans la cible aujourd’hui.`}
+              ? t("home.noReadingToday")
+              : t("home.inRangeToday", {
+                  inRange: inRangeCount,
+                  total: size(today),
+                })}
           </p>
           <ReadingsList
             readings={today}
-            emptyTitle="Rien pour aujourd’hui"
-            emptyBody="Ajoutez la première glycémie du jour — moins de 10 secondes."
+            emptyTitle={t("home.emptyTitle")}
+            emptyBody={t("home.emptyBody")}
           />
         </>
       )}

@@ -8,6 +8,7 @@ import { Chip } from "@/components/ui";
 import { GlucoseChart } from "@/components/glucose-chart";
 import { useReadings } from "@/providers/readings-provider";
 import { colors } from "@/theme";
+import { t } from "@glowcose/core";
 
 export default function GraphRoute() {
   const { readings, ready, source } = useReadings();
@@ -16,7 +17,7 @@ export default function GraphRoute() {
   return (
     <Screen>
       <AppHeader demo={source === "demo"} />
-      <Text style={styles.title}>Graphique</Text>
+      <Text style={styles.title}>{t("graph.title")}</Text>
       <View style={styles.chips}>
         <Chip
           selected={rangeDays === 7}
@@ -30,9 +31,9 @@ export default function GraphRoute() {
         />
       </View>
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Tendance</Text>
+        <Text style={styles.cardTitle}>{t("graph.trend")}</Text>
         <Text style={styles.cardBody}>
-          Lignes de référence : cible à jeun (vert) et post 2h (orange).
+          {t("graph.reference")}
         </Text>
         {ready ? (
           <GlucoseChart readings={readings} rangeDays={rangeDays} />

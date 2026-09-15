@@ -8,6 +8,7 @@ import { AddReadingForm } from "@/components/add-reading-form";
 import { Disclaimer } from "@/components/disclaimer";
 import { useReadings } from "@/components/readings-provider";
 import { Button } from "@/components/ui/button";
+import { t } from "@/lib/i18n";
 
 export default function EditPage() {
   const params = useParams<{ id: string }>();
@@ -25,12 +26,12 @@ export default function EditPage() {
           render={<Link href="/" />}
         >
           <ChevronLeft className="size-5" />
-          <span className="sr-only">Retour</span>
+          <span className="sr-only">{t("navigation.back")}</span>
         </Button>
         <div>
-          <h1 className="font-display text-xl tracking-tight">Modifier</h1>
+          <h1 className="font-display text-xl tracking-tight">{t("edit.title")}</h1>
           <p className="text-xs text-muted-foreground">
-            Ajustez la mesure ou archivez-la.
+            {t("edit.lead")}
           </p>
         </div>
       </header>
@@ -40,7 +41,7 @@ export default function EditPage() {
         <AddReadingForm initial={reading} />
       ) : (
         <p className="text-sm text-muted-foreground">
-          Mesure introuvable. Elle a peut-être été archivée.
+          {t("edit.missing")}
         </p>
       )}
       <Disclaimer className="mt-6 text-center text-xs text-muted-foreground" />

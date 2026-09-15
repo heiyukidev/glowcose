@@ -18,6 +18,7 @@ import {
 import { StatusDot } from "@/components/status-badge";
 import { useSettings } from "@/components/settings-provider";
 import { formatPrimary, formatTime } from "@/lib/format";
+import { t } from "@/lib/i18n";
 import {
   contextLabel,
   convertFromMgDl,
@@ -95,7 +96,7 @@ export function GlucoseChart({
   if (size(points) === 0) {
     return (
       <div className="flex h-48 items-center justify-center rounded-2xl bg-muted/60 text-sm text-muted-foreground">
-        Pas encore de mesure sur cette période.
+        {t("graph.empty")}
       </div>
     );
   }
@@ -114,7 +115,7 @@ export function GlucoseChart({
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={points} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
           <defs>
-            <linearGradient id="glowcoseFill" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="glucielFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.28} />
               <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.02} />
             </linearGradient>
@@ -166,7 +167,7 @@ export function GlucoseChart({
             dataKey="value"
             stroke="var(--primary)"
             strokeWidth={2.4}
-            fill="url(#glowcoseFill)"
+            fill="url(#glucielFill)"
             dot={{ r: 3, strokeWidth: 0, fill: "var(--primary)" }}
             activeDot={{ r: 5 }}
           />

@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n";
+
 export function Disclaimer({ className }: { className?: string }) {
   return (
     <p
@@ -6,8 +8,7 @@ export function Disclaimer({ className }: { className?: string }) {
         "text-center text-xs leading-relaxed text-muted-foreground"
       }
     >
-      Glowcose n’est pas un dispositif médical et ne remplace pas un avis
-      médical.
+      {t("brand.disclaimer")}
     </p>
   );
 }

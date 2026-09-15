@@ -5,7 +5,7 @@ import { fr } from "date-fns/locale";
 import { filter, size } from "lodash";
 import { useRouter } from "expo-router";
 
-import { DIABETES_TYPE_LABELS, readingStatus } from "@glowcose/core";
+import { DIABETES_TYPE_LABELS, readingStatus, t } from "@glowcose/core";
 import { Screen } from "@/components/screen";
 import { AppHeader } from "@/components/header";
 import { Disclaimer } from "@/components/disclaimer";
@@ -39,12 +39,12 @@ export default function TodayScreen() {
     <Screen>
       <AppHeader demo={source === "demo"} />
       <Text style={styles.date}>{todayLabel}</Text>
-      <Text style={styles.title}>Aujourd’hui</Text>
+      <Text style={styles.title}>{t("home.today")}</Text>
       <Text style={styles.sub}>
-        {DIABETES_TYPE_LABELS[settings.diabetesType]} · suivi personnel
+        {DIABETES_TYPE_LABELS[settings.diabetesType]} · {t("home.personalTracking")}
       </Text>
       <Button
-        title="Ajouter une glycémie"
+        title={t("home.addReading")}
         onPress={() => router.push("/ajouter")}
         style={styles.cta}
       />
@@ -54,13 +54,16 @@ export default function TodayScreen() {
         <>
           <Text style={styles.count}>
             {size(today) === 0
-              ? "Pas encore de mesure aujourd’hui."
-              : `${inRangeCount} / ${size(today)} dans la cible aujourd’hui.`}
+              ? t("home.noReadingToday")
+              : t("home.inRangeToday", {
+                  inRange: inRangeCount,
+                  total: size(today),
+                })}
           </Text>
           <ReadingsList
             readings={today}
-            emptyTitle="Rien pour aujourd’hui"
-            emptyBody="Ajoutez la première glycémie du jour — moins de 10 secondes."
+            emptyTitle={t("home.emptyTitle")}
+            emptyBody={t("home.emptyBody")}
           />
         </>
       )}

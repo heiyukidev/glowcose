@@ -28,6 +28,7 @@ import {
   mgDlToGl,
   parseGlucoseInput,
   readingStatus,
+  t,
   thresholdsForContext,
   unitPlaceholder,
   type PostMealOffset,
@@ -100,7 +101,7 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
 
   async function onSubmit() {
     if (parsedMgDl === null) {
-      Alert.alert("Glycémie", "Entrez une glycémie valide.");
+      Alert.alert("Glycémie", t("form.invalidReading"));
       return;
     }
     setSaving(true);
@@ -120,7 +121,7 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
       }
       router.replace("/");
     } catch {
-      Alert.alert("Enregistrement", "Enregistrement impossible pour le moment.");
+      Alert.alert("Enregistrement", t("form.saveUnavailable"));
       setSaving(false);
     }
   }
@@ -257,13 +258,13 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
       />
       {initial ? (
         <Button
-          title="Archiver"
+        title={t("form.archive")}
           variant="ghost"
           onPress={() => {
-            Alert.alert("Archiver", "Archiver cette mesure ?", [
-              { text: "Annuler", style: "cancel" },
+            Alert.alert(t("form.archive"), t("form.archivePrompt"), [
+              { text: t("form.cancel"), style: "cancel" },
               {
-                text: "Archiver",
+                text: t("form.archive"),
                 style: "destructive",
                 onPress: () => {
                   void archiveReading(initial._id).then(() =>

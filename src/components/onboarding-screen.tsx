@@ -13,6 +13,7 @@ import {
   DIABETES_TYPES,
   type DiabetesType,
 } from "@/lib/glucose";
+import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const BLURBS: Record<DiabetesType, string> = {
@@ -36,8 +37,7 @@ export function OnboardingScreen() {
         Quel diabète suivez-vous ?
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Glowcose charge les couleurs et seuils correspondants. Vous pourrez
-        changer plus tard.
+        {t("onboarding.lead")}
       </p>
       <div className="mt-6 grid gap-2">
         {map(DIABETES_TYPES, (type) => (

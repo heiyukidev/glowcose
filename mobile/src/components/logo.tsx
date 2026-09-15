@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View, type ViewProps } from "react-native";
 import { Droplets } from "lucide-react-native";
 
+import { t } from "@glowcose/core";
 import { colors } from "@/theme";
 
 export function Logo({ style }: ViewProps) {
@@ -9,7 +10,7 @@ export function Logo({ style }: ViewProps) {
       <View style={styles.mark}>
         <Droplets color={colors.primaryForeground} size={18} strokeWidth={2.2} />
       </View>
-      <Text style={styles.wordmark}>Glowcose</Text>
+      <Text style={styles.wordmark}>{t("brand.name")}</Text>
     </View>
   );
 }

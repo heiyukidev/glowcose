@@ -1,3 +1,6 @@
-Shared glucose domain for Glowcose web (`src/lib` re-exports) and Expo (`@glowcose/core`).
+Socle partagé du domaine glycémique pour le web Gluciel (`src/lib` réexporte)
+et Expo (`@glowcose/core`, identifiant de package historique interne).
 
-Edit helpers here — units, color bands, seed data, French labels. Do not fork copies in `mobile/` or `src/lib`.
+Modifiez ici les utilitaires : unités, bandes de couleur, données d’exemple et
+catalogue français par défaut. Ne dupliquez pas ces éléments dans `mobile/` ou
+`src/lib`.
