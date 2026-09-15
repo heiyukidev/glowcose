@@ -17,7 +17,7 @@ import { colors } from "@/theme";
 
 export default function TodayScreen() {
   const router = useRouter();
-  const { readings, ready, source } = useReadings();
+  const { readings, ready } = useReadings();
   const { settings } = useSettings();
   const [now] = useState(() => new Date());
   const today = todayReadings(readings, now);
@@ -37,7 +37,7 @@ export default function TodayScreen() {
 
   return (
     <Screen>
-      <AppHeader demo={source === "demo"} />
+      <AppHeader />
       <Text style={styles.date}>{todayLabel}</Text>
       <Text style={styles.title}>{t("home.today")}</Text>
       <Text style={styles.sub}>

@@ -2,7 +2,7 @@
 
 Carnet personnel de glycémie (français d’abord). **Ce n’est pas un dispositif médical** et ça ne remplace pas un avis médical.
 
-Web : Next.js + Clerk + Convex, avec un **mode démo** si les clés sont absentes.
+Web : Next.js + Clerk + Convex. Sans clés d’auth, le carnet reste local (vide au départ) sur l’appareil.
 
 Mobile : Expo (React Native) dans `mobile/`, même modèle produit, même backend Convex quand il est configuré.
 
@@ -14,7 +14,7 @@ Le web Next.js reste **à la racine** pour que le déploiement Vercel actuel con
 | --- | --- |
 | `src/` | App web Next.js |
 | `convex/` | Schéma + fonctions Convex, partagés web + mobile |
-| `packages/core` | Unités, bandes de couleurs, libellés FR, seed |
+| `packages/core` | Unités, bandes de couleurs, libellés FR |
 | `mobile/` | App Expo Router (npm à part, pas de workspaces) |
 
 Pas de npm workspaces : Next (racine) et Expo (`mobile/`) ont chacun leur `node_modules`, pour éviter un conflit React Native / React web.
@@ -32,7 +32,7 @@ Build Vercel / local :
 npm run build
 ```
 
-Sans `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` ni `NEXT_PUBLIC_CONVEX_URL`, l’app tourne en **mode démo** (localStorage, graines d’exemple).
+Sans `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` ni `NEXT_PUBLIC_CONVEX_URL`, l’app enregistre les mesures dans localStorage (`glowcose.readings.v2`). Le carnet démarre vide.
 
 ## Mobile
 
@@ -49,7 +49,7 @@ npx expo start --web
 # ou depuis la racine : npm run mobile:web
 ```
 
-Sans `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` ni `EXPO_PUBLIC_CONVEX_URL` : **mode démo** (AsyncStorage = équivalent localStorage).
+Sans `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` ni `EXPO_PUBLIC_CONVEX_URL` : mêmes mesures locales (AsyncStorage = équivalent localStorage).
 
 Boucle v0.2 : onboarding (type de diabète) → Aujourd’hui → Ajouter (couleurs) → Historique → Graphique (7j / 30j) → Réglages (unités + seuils).
 
@@ -89,11 +89,11 @@ Copier `.env.example` à la racine (web) et `mobile/.env.example` vers `mobile/.
 
 | Variable | Où | Rôle |
 | --- | --- | --- |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Web | Clerk ; vide = démo |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Web | Clerk ; vide = carnet local |
 | `CLERK_SECRET_KEY` | Web (serveur) | Clerk middleware |
-| `NEXT_PUBLIC_CONVEX_URL` | Web | Convex ; vide = démo |
-| `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` | Mobile | Clerk Expo ; vide = démo |
-| `EXPO_PUBLIC_CONVEX_URL` | Mobile | Convex ; vide = démo |
+| `NEXT_PUBLIC_CONVEX_URL` | Web | Convex ; vide = carnet local |
+| `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` | Mobile | Clerk Expo ; vide = carnet local |
+| `EXPO_PUBLIC_CONVEX_URL` | Mobile | Convex ; vide = carnet local |
 | `CLERK_JWT_ISSUER_DOMAIN` | Convex dashboard | Issuer JWT Clerk (ex. `https://xxx.clerk.accounts.dev`) |
 
 Les deux apps doivent pointer vers **le même** projet Clerk + Convex pour partager le carnet d’un compte.
@@ -106,9 +106,9 @@ npx convex dev
 
 Lie le projet, régénère `convex/_generated/`, et pousse le schéma `readings`.
 
-Les stubs `_generated/` sont **commités** pour que le build web ne casse plus sur `../../convex/_generated/api` en mode démo. Après `npx convex dev`, recommiter les fichiers générés.
+Les stubs `_generated/` sont **commités** pour que le build web ne casse plus sur `../../convex/_generated/api` sans URL Convex. Après `npx convex dev`, recommiter les fichiers générés.
 
-Sans déploiement Convex, le web et le mobile restent utilisables en local (démo).
+Sans déploiement Convex, le web et le mobile restent utilisables en local (carnet vide, mesures sur l’appareil).
 
 ## Produit (v0.2)
 

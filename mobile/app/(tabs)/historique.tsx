@@ -9,11 +9,11 @@ import { colors } from "@/theme";
 import { t } from "@glowcose/core";
 
 export default function HistoryRoute() {
-  const { readings, ready, source } = useReadings();
+  const { readings, ready } = useReadings();
 
   return (
     <Screen>
-      <AppHeader demo={source === "demo"} />
+      <AppHeader />
       <Text style={styles.title}>{t("history.title")}</Text>
       {!ready ? (
         <View style={styles.skeleton} />

@@ -95,7 +95,7 @@ export const AFTER_CONTEXTS: ReadingContext[] = [
   "after_dinner",
 ];
 
-/** Gestational (France CNGOF/SFD-style) defaults for the demo. */
+/** Gestational (France CNGOF/SFD-style) defaults. */
 export const GESTATIONAL_THRESHOLDS: ThresholdPreset = {
   beforeMeal: { hypoBelow: 70, greenMax: 95, orangeMax: 120 },
   after2h: { hypoBelow: 70, greenMax: 120, orangeMax: 160 },

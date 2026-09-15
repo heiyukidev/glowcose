@@ -10,7 +10,7 @@ import { useMemo, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import {
   ConvexReadingsProvider,
-  DemoReadingsProvider,
+  LocalReadingsProvider,
 } from "@/components/readings-provider";
 import { SettingsProvider } from "@/components/settings-provider";
 import { isClerkConfigured, isConvexConfigured } from "@/lib/runtime";
@@ -39,7 +39,7 @@ function ConvexTree({ children }: { children: ReactNode }) {
   );
 
   if (!client) {
-    return <DemoReadingsProvider>{children}</DemoReadingsProvider>;
+    return <LocalReadingsProvider>{children}</LocalReadingsProvider>;
   }
 
   return (
@@ -63,11 +63,11 @@ export function AppProviders({ children }: { children: ReactNode }) {
         {convexEnabled ? (
           <ConvexTree>{inner}</ConvexTree>
         ) : (
-          <DemoReadingsProvider>{inner}</DemoReadingsProvider>
+          <LocalReadingsProvider>{inner}</LocalReadingsProvider>
         )}
       </ClerkProvider>
     );
   }
 
-  return <DemoReadingsProvider>{inner}</DemoReadingsProvider>;
+  return <LocalReadingsProvider>{inner}</LocalReadingsProvider>;
 }

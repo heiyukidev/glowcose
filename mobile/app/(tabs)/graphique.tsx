@@ -11,12 +11,12 @@ import { colors } from "@/theme";
 import { t } from "@glowcose/core";
 
 export default function GraphRoute() {
-  const { readings, ready, source } = useReadings();
+  const { readings, ready } = useReadings();
   const [rangeDays, setRangeDays] = useState<7 | 30>(7);
 
   return (
     <Screen>
-      <AppHeader demo={source === "demo"} />
+      <AppHeader />
       <Text style={styles.title}>{t("graph.title")}</Text>
       <View style={styles.chips}>
         <Chip

@@ -17,12 +17,12 @@ import {
 } from "@/components/ui/card";
 
 export function GraphScreen() {
-  const { readings, ready, source } = useReadings();
+  const { readings, ready } = useReadings();
   const [rangeDays, setRangeDays] = useState<7 | 30>(7);
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pb-8">
-      <AppHeader demo={source === "demo"} />
+      <AppHeader />
       <h1 className="mb-4 font-display text-3xl tracking-tight">
         {t("graph.title")}
       </h1>
