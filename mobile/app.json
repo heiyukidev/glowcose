@@ -11,6 +11,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.khaledromdhane.glowcose",
       "buildNumber": "1",
+      "deploymentTarget": "17.0",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -50,6 +51,20 @@
         {
           "photosPermission": "Glowcose peut joindre une photo de repas \u00e0 une mesure (stockage local).",
           "cameraPermission": "Glowcose peut photographier un repas (stockage local, stub)."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "17.0"
+          }
+        }
+      ],
+      [
+        "@clerk/expo",
+        {
+          "appleSignIn": false
         }
       ]
     ],
