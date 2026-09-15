@@ -65,11 +65,14 @@ export function t(
   params: TranslationParams = {},
   locale: Locale = DEFAULT_LOCALE,
 ): string {
-  const message = get(MESSAGES, [locale, key]) ?? get(MESSAGES, [DEFAULT_LOCALE, key]) ?? key;
+  const message: string =
+    get(MESSAGES, [locale, key]) ??
+    get(MESSAGES, [DEFAULT_LOCALE, key]) ??
+    key;
 
   return reduce(
     params,
-    (translated, value, name) =>
+    (translated: string, value, name) =>
       translated.replaceAll(`{{${name}}}`, String(value)),
     message,
   );
