@@ -9,14 +9,14 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.glowcose.mobile",
+      "bundleIdentifier": "com.khaledromdhane.glowcose",
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "app.glowcose.mobile",
+      "package": "com.khaledromdhane.glowcose",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#FBF6EC",
@@ -48,7 +48,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Glowcose peut joindre une photo de repas à une mesure (stockage local).",
+          "photosPermission": "Glowcose peut joindre une photo de repas \u00e0 une mesure (stockage local).",
           "cameraPermission": "Glowcose peut photographier un repas (stockage local, stub)."
         }
       ]
