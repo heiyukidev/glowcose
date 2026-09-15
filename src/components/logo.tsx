@@ -1,5 +1,6 @@
 import { Droplets } from "lucide-react";
 
+import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export function Logo({ className }: { className?: string }) {
@@ -9,7 +10,7 @@ export function Logo({ className }: { className?: string }) {
         <Droplets className="size-5" strokeWidth={2.2} />
       </span>
       <span className="font-display text-xl tracking-tight text-foreground">
-        Glowcose
+        {t("brand.name")}
       </span>
     </div>
   );

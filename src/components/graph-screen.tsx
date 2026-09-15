@@ -7,6 +7,7 @@ import { Chip } from "@/components/chip";
 import { Disclaimer } from "@/components/disclaimer";
 import { GlucoseChart } from "@/components/glucose-chart";
 import { useReadings } from "@/components/readings-provider";
+import { t } from "@/lib/i18n";
 import {
   Card,
   CardContent,
@@ -22,7 +23,9 @@ export function GraphScreen() {
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pb-8">
       <AppHeader demo={source === "demo"} />
-      <h1 className="mb-4 font-display text-3xl tracking-tight">Graphique</h1>
+      <h1 className="mb-4 font-display text-3xl tracking-tight">
+        {t("graph.title")}
+      </h1>
       <div className="mb-4 flex gap-2">
         <Chip selected={rangeDays === 7} onClick={() => setRangeDays(7)}>
           7 jours
@@ -33,9 +36,9 @@ export function GraphScreen() {
       </div>
       <Card className="rounded-3xl">
         <CardHeader>
-          <CardTitle>Tendance</CardTitle>
+          <CardTitle>{t("graph.trend")}</CardTitle>
           <CardDescription>
-            Lignes de référence : cible à jeun (vert) et post 2h (orange).
+            {t("graph.reference")}
           </CardDescription>
         </CardHeader>
         <CardContent>

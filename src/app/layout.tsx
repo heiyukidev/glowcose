@@ -4,6 +4,7 @@ import { Fraunces, Outfit } from "next/font/google";
 
 import { AppProviders } from "@/components/providers";
 import { AppShell } from "@/components/app-shell";
+import { t } from "@/lib/i18n";
 
 import "./globals.css";
 
@@ -18,9 +19,8 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Glowcose — carnet de glycémie",
-  description:
-    "Carnet personnel de glycémie. Glowcose n’est pas un dispositif médical et ne remplace pas un avis médical.",
+  title: t("metadata.title"),
+  description: t("metadata.description"),
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

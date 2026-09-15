@@ -1,8 +1,8 @@
-# Glowcose
+# Gluciel
 
 Carnet personnel de glycémie (français d’abord). **Ce n’est pas un dispositif médical** et ça ne remplace pas un avis médical.
 
-Web : [glowcose.vercel.app](https://glowcose.vercel.app) — Next.js + Clerk + Convex, **mode démo** si les clés sont absentes.
+Web : Next.js + Clerk + Convex, avec un **mode démo** si les clés sont absentes.
 
 Mobile : Expo (React Native) dans `mobile/`, même modèle produit, même backend Convex quand il est configuré.
 
@@ -59,7 +59,7 @@ Photo repas : `expo-image-picker`, URI locale (stub). Pas de R2 pour l’instant
 
 Config EAS : `mobile/eas.json` (`development`, `preview`, `production`).
 
-**Un compte Expo ne suffit pas.** Il faut le **Apple Developer Program** (99 $/an) et une app dans **App Store Connect** avec le bundle ID `app.glowcose.mobile`. Détail et commandes : [`mobile/README.md`](mobile/README.md#testflight-eas-build--submit).
+**Un compte Expo ne suffit pas.** Il faut le **Apple Developer Program** (99 $/an) et une app dans **App Store Connect** avec le bundle ID `com.khaledromdhane.glowcose`. Détail et commandes : [`mobile/README.md`](mobile/README.md#testflight-eas-build--submit).
 
 ```sh
 cd mobile
@@ -72,6 +72,16 @@ eas submit --platform ios --profile production
 ```
 
 `eas init` écrit `extra.eas.projectId` dans `mobile/app.json` — à committer. Ne pas inventer d’IDs Apple. Pour le CI, une **clé API App Store Connect** (via `eas credentials`) est préférable à un Apple ID + 2FA.
+
+### Identifiants de continuité
+
+Gluciel conserve les clés de stockage locales `glowcose.settings.v2` et
+`glowcose.readings.v2`, ainsi que l’identifiant natif
+`com.khaledromdhane.glowcose`, pour ne pas couper l’accès aux données et aux
+mises à jour existantes. Le schéma d’URI `glowcose` est également conservé :
+il peut déjà être enregistré dans des liens profonds ou des redirections
+d’authentification. Ces identifiants techniques ne sont jamais affichés comme
+marque auprès des personnes qui utilisent l’app.
 
 ## Variables d’environnement
 

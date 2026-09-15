@@ -1,107 +1,142 @@
-Expo app for Glowcose. Run from this folder:
+# Application Expo Gluciel
+
+Application mobile du carnet personnel de glycémie Gluciel. Lancez-la depuis
+ce dossier :
 
 ```sh
 npm install
 npx expo start
 ```
 
-See the root [README](../README.md) for env vars, demo mode, and the shared Convex backend.
+Consultez le [README](../README.md) à la racine pour les variables
+d’environnement, le mode démo et le backend Convex partagé.
 
-## TestFlight (EAS Build + Submit)
+## TestFlight (build et envoi EAS)
 
-An **Expo account is not enough** for TestFlight. You also need:
+Un **compte Expo ne suffit pas** pour TestFlight. Il faut aussi :
 
-1. **Apple Developer Program** (paid, currently $99/year)
-2. An **App Store Connect** app record whose bundle ID is `app.glowcose.mobile`
-3. Signed Apple developer agreements in App Store Connect
+1. Le **programme Apple Developer** (payant, actuellement 99 $/an)
+2. Une fiche **App Store Connect** dont le bundle ID est
+   `com.khaledromdhane.glowcose`
+3. Les contrats développeur Apple signés dans App Store Connect
 
-This repo does **not** contain an EAS `projectId`, Apple Team ID, or ASC app ID. Those are created when you log in and run configure — do not invent them.
+Le projet EAS est déjà lié dans `app.json`. Les identifiants Apple et App Store
+Connect restent propres au compte de Khaled : ne les inventez pas.
 
-### One-time setup (from `mobile/`)
+### Configuration initiale (depuis `mobile/`)
 
 ```sh
 cd mobile
 npm install
 
-# CLI
+# CLI EAS
 npm i -g eas-cli
-# or use npx without a global install:
+# ou utilisez npx sans installation globale :
 # npx eas-cli --version
 
 eas login
-# same Expo account Khaled already has
+# même compte Expo que Khaled
 
-# Creates extra.eas.projectId in app.json — commit that change
+# crée extra.eas.projectId dans app.json — à committer
 eas init
-# and/or:
+# et/ou :
 eas build:configure
 ```
 
-`eas init` / `eas build:configure` write `expo.extra.eas.projectId` into `app.json`. Commit the real UUID they print. Until then, `eas.json` is already in git with `development`, `preview`, and `production` profiles.
+`eas init` et `eas build:configure` écrivent `expo.extra.eas.projectId` dans
+`app.json`. Committez le véritable UUID affiché. `eas.json` contient déjà les
+profils `development`, `preview` et `production`.
 
-Register the App ID `app.glowcose.mobile` on the Apple Developer portal (or let EAS create it on first iOS build when you confirm the prompt).
+Enregistrez l’App ID `com.khaledromdhane.glowcose` dans le portail Apple
+Developer (ou laissez EAS le créer lors du premier build iOS lorsque la
+confirmation est demandée).
 
-Create the iOS app in [App Store Connect](https://appstoreconnect.apple.com) with that same bundle ID **before** `eas submit`.
+Créez l’app iOS dans [App Store Connect](https://appstoreconnect.apple.com)
+avec ce même bundle ID **avant** `eas submit`.
 
-### Build (App Store / TestFlight binary)
+### Continuité du produit
+
+Le nom affiché et le slug Expo sont désormais **Gluciel**. Le schéma d’URI
+`glowcose` et le bundle ID `com.khaledromdhane.glowcose` sont volontairement
+conservés : ils constituent des identifiants techniques de continuité pour les
+liens profonds, l’authentification et les mises à jour. Ils ne sont pas une
+marque destinée aux utilisateurs.
+
+### Build (binaire App Store / TestFlight)
 
 ```sh
 cd mobile
 eas build --platform ios --profile production
 ```
 
-Other profiles:
+Autres profils :
 
 ```sh
-# Dev client, internal install (needs expo-dev-client — already a dependency)
+# Client de développement, installation interne (requiert expo-dev-client,
+# déjà présent)
 eas build --platform ios --profile development
 
-# Production-like binary, internal/ad-hoc distribution (not TestFlight)
+# Binaire proche de la production, diffusion interne/ad hoc (pas TestFlight)
 eas build --platform ios --profile preview
 ```
 
-`production` uses remote iOS `buildNumber` auto-increment (`cli.appVersionSource: remote`). First production build starts from `ios.buildNumber` `"1"` in `app.json`.
+`production` utilise l’auto-incrémentation distante du `buildNumber` iOS
+(`cli.appVersionSource: remote`). Le premier build de production part de
+`ios.buildNumber` `"1"` dans `app.json`.
 
-### Submit to TestFlight
+### Envoi vers TestFlight
 
 ```sh
 cd mobile
 eas submit --platform ios --profile production
 ```
 
-This uploads a **production** iOS build to App Store Connect (TestFlight). It does not publish to the public App Store.
+Cette commande envoie un build iOS de **production** vers App Store Connect
+(TestFlight). Elle ne publie pas l’app sur l’App Store.
 
-After submit, finish TestFlight in App Store Connect: export compliance (already set `ITSAppUsesNonExemptEncryption` to `false` in `app.json`), testers, and processing wait.
+Après l’envoi, terminez la configuration TestFlight dans App Store Connect :
+conformité à l’exportation (`ITSAppUsesNonExemptEncryption` est déjà à
+`false` dans `app.json`), testeurs et attente de traitement.
 
-### Apple credentials — prefer an ASC API key (CI)
+### Identifiants Apple — privilégier une clé API ASC (CI)
 
-Do **not** commit `.p8` keys. They are gitignored.
+Ne commitez **jamais** les clés `.p8` : elles sont ignorées par Git.
 
-**Preferred (CI and repeatable submit):**
+**Option privilégiée (CI et envoi reproductible) :**
 
-1. In App Store Connect → Users and Access → Integrations → App Store Connect API, create a key (App Manager).
-2. Download the `.p8` once. Note **Key ID** and **Issuer ID**.
-3. Store the key on Expo, not in git:
+1. Dans App Store Connect → Users and Access → Integrations → App Store
+   Connect API, créez une clé (App Manager).
+2. Téléchargez une seule fois le fichier `.p8`. Notez le **Key ID** et
+   l’**Issuer ID**.
+3. Stockez la clé dans Expo, jamais dans Git :
 
 ```sh
 cd mobile
 eas credentials -p ios
 ```
 
-Pick the production profile / App Store Connect API Key flow and paste Key ID, Issuer ID, and the `.p8`. EAS keeps it in the project credentials.
+Choisissez le profil production et le parcours App Store Connect API Key, puis
+ajoutez le Key ID, l’Issuer ID et le `.p8`. EAS les conserve dans les
+identifiants du projet.
 
-**Alternative (local files, still not in git):** add to `eas.json` `submit.production.ios` on your machine only (or a gitignored overlay):
+**Alternative (fichiers locaux, toujours hors de Git) :** ajoutez sur votre
+machine uniquement, dans `eas.json` ou un fichier de surcharge ignoré, les
+champs de `submit.production.ios` :
 
-- `ascApiKeyPath` — path to the `.p8`
+- `ascApiKeyPath` — chemin vers le `.p8`
 - `ascApiKeyId` — Key ID
 - `ascApiKeyIssuerId` — Issuer ID
 
-**Interactive Apple ID** works for a laptop (`eas submit` will prompt). It is a poor fit for CI (2FA). Prefer the ASC API key.
+L’**Apple ID interactif** fonctionne sur un ordinateur (`eas submit` demande
+les informations nécessaires), mais il convient mal à la CI à cause de la
+2FA. Préférez une clé API ASC.
 
-After the ASC app exists, you may set `submit.production.ios.ascAppId` (the numeric Apple ID in App Store Connect, **not** the bundle ID). Leave it unset until then — the CLI will prompt.
+Après création de l’app ASC, vous pouvez renseigner
+`submit.production.ios.ascAppId` (l’identifiant Apple numérique dans App Store
+Connect, **pas** le bundle ID). Laissez-le vide jusque-là : la CLI le demandera.
 
-### What this repo will not do for you
+### Ce que ce dépôt ne fait pas à votre place
 
-- It does not submit a build to TestFlight by itself.
-- It does not include Apple Team IDs or secrets.
-- Expo login alone cannot push to TestFlight.
+- Il n’envoie pas un build à TestFlight tout seul.
+- Il ne contient ni identifiant d’équipe Apple ni secret.
+- Une connexion Expo seule ne peut pas envoyer un build vers TestFlight.

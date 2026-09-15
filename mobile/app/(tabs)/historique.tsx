@@ -6,6 +6,7 @@ import { Disclaimer } from "@/components/disclaimer";
 import { ReadingsList } from "@/components/reading-list";
 import { useReadings } from "@/providers/readings-provider";
 import { colors } from "@/theme";
+import { t } from "@glowcose/core";
 
 export default function HistoryRoute() {
   const { readings, ready, source } = useReadings();
@@ -13,14 +14,14 @@ export default function HistoryRoute() {
   return (
     <Screen>
       <AppHeader demo={source === "demo"} />
-      <Text style={styles.title}>Historique</Text>
+      <Text style={styles.title}>{t("history.title")}</Text>
       {!ready ? (
         <View style={styles.skeleton} />
       ) : (
         <ReadingsList
           readings={readings}
-          emptyTitle="Aucune glycémie"
-          emptyBody="Les mesures apparaîtront ici, groupées par jour."
+          emptyTitle={t("history.emptyTitle")}
+          emptyBody={t("history.emptyBody")}
         />
       )}
       <Disclaimer style={styles.disclaimer} />

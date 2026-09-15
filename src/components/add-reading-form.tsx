@@ -37,6 +37,7 @@ import {
   type Reading,
   type ReadingContext,
 } from "@/lib/glucose";
+import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const TONE_SURFACE: Record<string, string> = {
@@ -106,7 +107,7 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     if (parsedMgDl === null) {
-      toast.error("Entrez une glycémie valide.");
+      toast.error(t("form.invalidReading"));
       return;
     }
     setSaving(true);
@@ -128,7 +129,7 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
       }
       router.push("/");
     } catch {
-      toast.error("Enregistrement impossible pour le moment.");
+      toast.error(t("form.saveUnavailable"));
       setSaving(false);
     }
   }
@@ -281,7 +282,7 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
                 router.push("/");
               }}
             >
-              Archiver
+              {t("form.archive")}
             </Button>
           ) : null}
         </div>

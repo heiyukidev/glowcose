@@ -4,6 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { AddReadingForm } from "@/components/add-reading-form";
 import { Disclaimer } from "@/components/disclaimer";
 import { Button } from "@/components/ui/button";
+import { t } from "@/lib/i18n";
 
 export default function AddPage() {
   return (
@@ -17,12 +18,12 @@ export default function AddPage() {
           render={<Link href="/" />}
         >
           <ChevronLeft className="size-5" />
-          <span className="sr-only">Retour</span>
+          <span className="sr-only">{t("navigation.back")}</span>
         </Button>
         <div>
-          <h1 className="font-display text-xl tracking-tight">Nouvelle glycémie</h1>
+          <h1 className="font-display text-xl tracking-tight">{t("add.title")}</h1>
           <p className="text-xs text-muted-foreground">
-            Valeur, contexte, enregistrer.
+            {t("add.lead")}
           </p>
         </div>
       </header>

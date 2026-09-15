@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from "react-native";
 import {
   convertFromMgDl,
   readingStatus,
+  t,
   type Reading,
 } from "@glowcose/core";
 import { useSettings } from "@/providers/settings-provider";
@@ -36,7 +37,7 @@ export function GlucoseChart({
     return (
       <View style={styles.empty}>
         <Text style={styles.emptyText}>
-          Pas encore de mesure sur cette période.
+          {t("graph.empty")}
         </Text>
       </View>
     );
@@ -94,7 +95,7 @@ export function GlucoseChart({
         })}
       </View>
       <Text style={styles.legend}>
-        Trait vert : cible à jeun · trait orange : post 2h.
+        {t("graph.legend")}
       </Text>
     </View>
   );

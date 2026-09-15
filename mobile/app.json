@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Glowcose",
-    "slug": "glowcose",
+    "name": "Gluciel",
+    "slug": "gluciel",
     "version": "0.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -49,8 +49,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Glowcose peut joindre une photo de repas \u00e0 une mesure (stockage local).",
-          "cameraPermission": "Glowcose peut photographier un repas (stockage local, stub)."
+          "photosPermission": "Gluciel peut joindre une photo de repas à une mesure (stockage local).",
+          "cameraPermission": "Gluciel peut photographier un repas (stockage local, prototype)."
         }
       ],
       [
