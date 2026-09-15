@@ -1,14 +1,14 @@
 import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 
 import { isClerkConfigured } from "@/runtime";
-import { DemoReadingsProvider } from "@/providers/readings-provider";
+import { LocalReadingsProvider } from "@/providers/readings-provider";
 import { SettingsProvider } from "@/providers/settings-provider";
 
-function DemoTree({ children }: { children: ReactNode }) {
+function LocalTree({ children }: { children: ReactNode }) {
   return (
-    <DemoReadingsProvider>
+    <LocalReadingsProvider>
       <SettingsProvider>{children}</SettingsProvider>
-    </DemoReadingsProvider>
+    </LocalReadingsProvider>
   );
 }
 
@@ -34,5 +34,5 @@ export function AppProviders({ children }: { children: ReactNode }) {
     return <Live>{children}</Live>;
   }
 
-  return <DemoTree>{children}</DemoTree>;
+  return <LocalTree>{children}</LocalTree>;
 }

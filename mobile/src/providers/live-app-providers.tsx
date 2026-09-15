@@ -7,7 +7,7 @@ import { ConvexReactClient } from "convex/react";
 import { clerkPublishableKey, convexUrl, isConvexConfigured } from "@/runtime";
 import {
   ConvexReadingsProvider,
-  DemoReadingsProvider,
+  LocalReadingsProvider,
 } from "@/providers/readings-provider";
 import { SettingsProvider } from "@/providers/settings-provider";
 
@@ -16,7 +16,7 @@ function ConvexTree({ children }: { children: ReactNode }) {
   const client = useMemo(() => (url ? new ConvexReactClient(url) : null), [url]);
 
   if (!client) {
-    return <DemoReadingsProvider>{children}</DemoReadingsProvider>;
+    return <LocalReadingsProvider>{children}</LocalReadingsProvider>;
   }
 
   return (
@@ -30,9 +30,9 @@ export function LiveAppProviders({ children }: { children: ReactNode }) {
   const publishableKey = clerkPublishableKey();
   if (!publishableKey) {
     return (
-      <DemoReadingsProvider>
+      <LocalReadingsProvider>
         <SettingsProvider>{children}</SettingsProvider>
-      </DemoReadingsProvider>
+      </LocalReadingsProvider>
     );
   }
 
@@ -42,7 +42,7 @@ export function LiveAppProviders({ children }: { children: ReactNode }) {
       {isConvexConfigured() ? (
         <ConvexTree>{inner}</ConvexTree>
       ) : (
-        <DemoReadingsProvider>{inner}</DemoReadingsProvider>
+        <LocalReadingsProvider>{inner}</LocalReadingsProvider>
       )}
     </ClerkProvider>
   );

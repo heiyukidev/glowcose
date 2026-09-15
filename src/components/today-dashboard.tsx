@@ -17,7 +17,7 @@ import { DIABETES_TYPE_LABELS, readingStatus } from "@/lib/glucose";
 import { t } from "@/lib/i18n";
 
 export function TodayDashboard() {
-  const { readings, ready, source } = useReadings();
+  const { readings, ready } = useReadings();
   const { settings } = useSettings();
   const [now] = useState(() => new Date());
   const today = todayReadings(readings, now);
@@ -37,7 +37,7 @@ export function TodayDashboard() {
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pb-8">
-      <AppHeader demo={source === "demo"} />
+      <AppHeader />
       <section className="pb-4">
         <p className="text-sm capitalize text-muted-foreground">{todayLabel}</p>
         <h1 className="font-display text-3xl leading-tight tracking-tight">

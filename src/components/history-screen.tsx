@@ -7,11 +7,11 @@ import { ReadingsList } from "@/components/readings-table";
 import { t } from "@/lib/i18n";
 
 export function HistoryScreen() {
-  const { readings, ready, source } = useReadings();
+  const { readings, ready } = useReadings();
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pb-8">
-      <AppHeader demo={source === "demo"} />
+      <AppHeader />
       <h1 className="mb-4 font-display text-3xl tracking-tight">
         {t("history.title")}
       </h1>

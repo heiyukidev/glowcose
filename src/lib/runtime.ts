@@ -1,4 +1,4 @@
-export { DEMO_USER_ID, DEMO_USER_NAME } from "../../packages/core/src/constants";
+export { LOCAL_USER_ID } from "../../packages/core/src/constants";
 
 export function isClerkConfigured(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);

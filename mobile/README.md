@@ -9,7 +9,7 @@ npx expo start
 ```
 
 Consultez le [README](../README.md) à la racine pour les variables
-d’environnement, le mode démo et le backend Convex partagé.
+d’environnement, le carnet local et le backend Convex partagé.
 
 ## TestFlight (build et envoi EAS)
 
