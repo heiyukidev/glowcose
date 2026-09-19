@@ -5,6 +5,7 @@ import { get, map } from "lodash";
 import { AppHeader } from "@/components/app-header";
 import { Chip } from "@/components/chip";
 import { Disclaimer } from "@/components/disclaimer";
+import { ImportCsv } from "@/components/import-csv";
 import { useSettings } from "@/components/settings-provider";
 import { ShareCarnet } from "@/components/share-carnet";
 import { UnitToggle } from "@/components/unit-toggle";
@@ -97,6 +98,8 @@ export function SettingsScreen() {
       </section>
 
       <ShareCarnet />
+
+      <ImportCsv />
 
       <section className="mb-8 space-y-3">
         <h2 className="text-sm font-medium">Type de diabète</h2>

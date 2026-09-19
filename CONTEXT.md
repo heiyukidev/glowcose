@@ -21,9 +21,13 @@ The Member who recorded a given Reading.
 _Avoid_: Owner, creator, user
 
 **Reading**:
-One blood-glucose observation in the Carnet, stored canonically as `valueMgDl`.
-_Avoid_: Measurement, entry, value (alone)
+One capillary (fingerstick) glucose observation in the Carnet, stored canonically as `valueMgDl`.
+_Avoid_: Measurement, entry, value (alone), CGM point, scan
 
 **Invite**:
 A short-lived code that adds a second Member to a Carnet.
 _Avoid_: Share link (as the domain object), invitation email
+
+**Correspondence**:
+The Member-chosen pairing of one CSV column to one Reading field for an import.
+_Avoid_: Mapping, schema, matching, binding
