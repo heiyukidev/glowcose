@@ -9,6 +9,10 @@ import { useMemo, type ReactNode } from "react";
 
 import { Toaster } from "@/components/ui/sonner";
 import {
+  CarnetProvider,
+  DemoCarnetProvider,
+} from "@/components/carnet-provider";
+import {
   ConvexReadingsProvider,
   DemoReadingsProvider,
 } from "@/components/readings-provider";
@@ -39,12 +43,18 @@ function ConvexTree({ children }: { children: ReactNode }) {
   );
 
   if (!client) {
-    return <DemoReadingsProvider>{children}</DemoReadingsProvider>;
+    return (
+      <DemoReadingsProvider>
+        <DemoCarnetProvider>{children}</DemoCarnetProvider>
+      </DemoReadingsProvider>
+    );
   }
 
   return (
     <ConvexProviderWithClerk client={client} useAuth={useAuth}>
-      <ConvexReadingsProvider>{children}</ConvexReadingsProvider>
+      <ConvexReadingsProvider>
+        <CarnetProvider>{children}</CarnetProvider>
+      </ConvexReadingsProvider>
     </ConvexProviderWithClerk>
   );
 }
@@ -63,11 +73,17 @@ export function AppProviders({ children }: { children: ReactNode }) {
         {convexEnabled ? (
           <ConvexTree>{inner}</ConvexTree>
         ) : (
-          <DemoReadingsProvider>{inner}</DemoReadingsProvider>
+          <DemoReadingsProvider>
+            <DemoCarnetProvider>{inner}</DemoCarnetProvider>
+          </DemoReadingsProvider>
         )}
       </ClerkProvider>
     );
   }
 
-  return <DemoReadingsProvider>{inner}</DemoReadingsProvider>;
+  return (
+    <DemoReadingsProvider>
+      <DemoCarnetProvider>{inner}</DemoCarnetProvider>
+    </DemoReadingsProvider>
+  );
 }

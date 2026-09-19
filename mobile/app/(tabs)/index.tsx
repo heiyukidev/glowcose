@@ -11,6 +11,7 @@ import { AppHeader } from "@/components/header";
 import { Disclaimer } from "@/components/disclaimer";
 import { Button } from "@/components/ui";
 import { ReadingsList, todayReadings } from "@/components/reading-list";
+import { useCarnet } from "@/providers/carnet-provider";
 import { useReadings } from "@/providers/readings-provider";
 import { useSettings } from "@/providers/settings-provider";
 import { colors } from "@/theme";
@@ -19,6 +20,7 @@ export default function TodayScreen() {
   const router = useRouter();
   const { readings, ready, source } = useReadings();
   const { settings } = useSettings();
+  const { mine } = useCarnet();
   const [now] = useState(() => new Date());
   const today = todayReadings(readings, now);
   const inRangeCount = size(
@@ -41,7 +43,10 @@ export default function TodayScreen() {
       <Text style={styles.date}>{todayLabel}</Text>
       <Text style={styles.title}>{t("home.today")}</Text>
       <Text style={styles.sub}>
-        {DIABETES_TYPE_LABELS[settings.diabetesType]} · {t("home.personalTracking")}
+        {DIABETES_TYPE_LABELS[settings.diabetesType]} ·{" "}
+        {(mine?.memberCount ?? 1) > 1
+          ? t("home.sharedTracking")
+          : t("home.personalTracking")}
       </Text>
       <Button
         title={t("home.addReading")}

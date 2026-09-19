@@ -4,6 +4,7 @@ import { SignIn } from "@clerk/nextjs";
 import Link from "next/link";
 
 import { Logo } from "@/components/logo";
+import { t } from "@/lib/i18n";
 import { isClerkConfigured } from "@/lib/runtime";
 
 export default function SignInPage() {
@@ -29,7 +30,7 @@ export default function SignInPage() {
       <div className="text-center">
         <h1 className="font-display text-2xl">Connexion</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Compte personnel — rien n’est partagé en dehors du foyer.
+          {t("connexion.lead")}
         </p>
       </div>
       <SignIn routing="hash" fallbackRedirectUrl="/" />

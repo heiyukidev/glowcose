@@ -7,6 +7,7 @@ import { Chip } from "@/components/chip";
 import { Disclaimer } from "@/components/disclaimer";
 import { useReadings } from "@/components/readings-provider";
 import { useSettings } from "@/components/settings-provider";
+import { ShareCarnet } from "@/components/share-carnet";
 import { UnitToggle } from "@/components/unit-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -97,6 +98,8 @@ export function SettingsScreen() {
         <h2 className="text-sm font-medium">Unités</h2>
         <UnitToggle value={settings.unit} onChange={setUnit} />
       </section>
+
+      <ShareCarnet />
 
       <section className="mb-8 space-y-3">
         <h2 className="text-sm font-medium">Type de diabète</h2>

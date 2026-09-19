@@ -22,6 +22,33 @@ const FRENCH_MESSAGES = {
   "navigation.back": "Retour",
   "home.today": "Aujourd’hui",
   "home.personalTracking": "suivi personnel",
+  "home.sharedTracking": "carnet partagé",
+  "share.title": "Partager le carnet",
+  "share.leadSolo":
+    "Ce carnet suit une personne. Un proche peut ajouter des mesures avec vous.",
+  "share.leadShared":
+    "{{count}} personnes peuvent ajouter des mesures sur ce carnet.",
+  "share.createCode": "Créer un code d’invitation",
+  "share.newCode": "Nouveau code",
+  "share.copyLink": "Copier le lien",
+  "share.share": "Envoyer le code",
+  "share.copied": "Lien copié",
+  "share.codeHint":
+    "Le code expire dans 7 jours. Il ne peut servir qu’une fois.",
+  "share.joinTitle": "Rejoindre un carnet",
+  "share.joinLead":
+    "Entrez le code reçu. Vos mesures actuelles ne seront pas mélangées.",
+  "share.joinCta": "Rejoindre",
+  "share.joinPlaceholder": "Code",
+  "share.needAccount":
+    "Connectez-vous pour partager ou rejoindre un carnet.",
+  "share.joinSuccess": "Vous suivez maintenant le même carnet.",
+  "rejoindre.title": "Rejoindre le carnet",
+  "rejoindre.missing": "Il manque un code d’invitation.",
+  "rejoindre.signingIn": "Connectez-vous pour rejoindre ce carnet.",
+  "rejoindre.joining": "Inscription au carnet…",
+  "connexion.lead":
+    "Un carnet suit une personne. Vous pourrez inviter un proche ensuite.",
   "home.addReading": "Ajouter une glycémie",
   "home.noReadingToday": "Pas encore de mesure aujourd’hui.",
   "home.inRangeToday": "{{inRange}} / {{total}} dans la cible aujourd’hui.",

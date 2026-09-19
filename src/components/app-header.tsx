@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 
 import { Logo } from "@/components/logo";
 import { Badge } from "@/components/ui/badge";
@@ -24,16 +24,16 @@ export function AppHeader({ demo }: { demo: boolean }) {
         ) : null}
         {clerkEnabled ? (
           <>
-            <SignedOut>
+            <Show when="signed-out">
               <SignInButton mode="modal">
                 <Button size="sm" variant="outline">
                   Se connecter
                 </Button>
               </SignInButton>
-            </SignedOut>
-            <SignedIn>
+            </Show>
+            <Show when="signed-in">
               <UserButton />
-            </SignedIn>
+            </Show>
           </>
         ) : null}
       </div>
