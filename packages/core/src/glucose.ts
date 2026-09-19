@@ -40,6 +40,8 @@ export type ThresholdPreset = {
 export type Reading = {
   _id: string;
   userId: string;
+  carnetId?: string;
+  recordedBy?: string;
   valueMgDl: number;
   context: ReadingContext;
   postMealOffset?: PostMealOffset;

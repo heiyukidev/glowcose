@@ -12,6 +12,7 @@ import { AppHeader } from "@/components/header";
 import { Disclaimer } from "@/components/disclaimer";
 import { Chip } from "@/components/ui";
 import { UnitToggle } from "@/components/unit-toggle";
+import { ShareCarnet } from "@/components/share-carnet";
 import { useSettings } from "@/providers/settings-provider";
 import { colors } from "@/theme";
 
@@ -88,6 +89,8 @@ export default function SettingsRoute() {
 
       <Text style={styles.section}>Unités</Text>
       <UnitToggle value={settings.unit} onChange={setUnit} />
+
+      <ShareCarnet />
 
       <Text style={styles.section}>Type de diabète</Text>
       <View style={styles.chips}>

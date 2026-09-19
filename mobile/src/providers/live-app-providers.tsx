@@ -6,22 +6,36 @@ import { ConvexReactClient } from "convex/react";
 
 import { clerkPublishableKey, convexUrl, isConvexConfigured } from "@/runtime";
 import {
+  CarnetProvider,
+  DemoCarnetProvider,
+} from "@/providers/carnet-provider";
+import {
   ConvexReadingsProvider,
   LocalReadingsProvider,
 } from "@/providers/readings-provider";
 import { SettingsProvider } from "@/providers/settings-provider";
+
+function LocalTree({ children }: { children: ReactNode }) {
+  return (
+    <LocalReadingsProvider>
+      <DemoCarnetProvider>{children}</DemoCarnetProvider>
+    </LocalReadingsProvider>
+  );
+}
 
 function ConvexTree({ children }: { children: ReactNode }) {
   const url = convexUrl();
   const client = useMemo(() => (url ? new ConvexReactClient(url) : null), [url]);
 
   if (!client) {
-    return <LocalReadingsProvider>{children}</LocalReadingsProvider>;
+    return <LocalTree>{children}</LocalTree>;
   }
 
   return (
     <ConvexProviderWithClerk client={client} useAuth={useAuth}>
-      <ConvexReadingsProvider>{children}</ConvexReadingsProvider>
+      <ConvexReadingsProvider>
+        <CarnetProvider>{children}</CarnetProvider>
+      </ConvexReadingsProvider>
     </ConvexProviderWithClerk>
   );
 }
@@ -31,7 +45,9 @@ export function LiveAppProviders({ children }: { children: ReactNode }) {
   if (!publishableKey) {
     return (
       <LocalReadingsProvider>
-        <SettingsProvider>{children}</SettingsProvider>
+        <DemoCarnetProvider>
+          <SettingsProvider>{children}</SettingsProvider>
+        </DemoCarnetProvider>
       </LocalReadingsProvider>
     );
   }
@@ -42,7 +58,7 @@ export function LiveAppProviders({ children }: { children: ReactNode }) {
       {isConvexConfigured() ? (
         <ConvexTree>{inner}</ConvexTree>
       ) : (
-        <LocalReadingsProvider>{inner}</LocalReadingsProvider>
+        <LocalTree>{inner}</LocalTree>
       )}
     </ClerkProvider>
   );

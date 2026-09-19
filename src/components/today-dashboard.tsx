@@ -9,6 +9,7 @@ import { Plus } from "lucide-react";
 
 import { AppHeader } from "@/components/app-header";
 import { Disclaimer } from "@/components/disclaimer";
+import { useCarnet } from "@/components/carnet-provider";
 import { useReadings } from "@/components/readings-provider";
 import { ReadingsList, todayReadings } from "@/components/readings-table";
 import { useSettings } from "@/components/settings-provider";
@@ -19,6 +20,7 @@ import { t } from "@/lib/i18n";
 export function TodayDashboard() {
   const { readings, ready } = useReadings();
   const { settings } = useSettings();
+  const { mine } = useCarnet();
   const [now] = useState(() => new Date());
   const today = todayReadings(readings, now);
   const inRangeCount = size(
@@ -44,7 +46,10 @@ export function TodayDashboard() {
           {t("home.today")}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {DIABETES_TYPE_LABELS[settings.diabetesType]} · {t("home.personalTracking")}
+          {DIABETES_TYPE_LABELS[settings.diabetesType]} ·{" "}
+          {(mine?.memberCount ?? 1) > 1
+            ? t("home.sharedTracking")
+            : t("home.personalTracking")}
         </p>
       </section>
 

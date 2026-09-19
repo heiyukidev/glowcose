@@ -7,7 +7,7 @@ import { includes } from "lodash";
 import { BottomNav } from "@/components/bottom-nav";
 import { useSettings } from "@/components/settings-provider";
 
-const OPEN_PATHS = ["/onboarding", "/connexion"];
+const OPEN_PATHS = ["/onboarding", "/connexion", "/rejoindre"];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();

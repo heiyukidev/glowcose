@@ -91,6 +91,8 @@ export function LocalReadingsProvider({ children }: { children: ReactNode }) {
 function mapConvexReading(doc: {
   _id: string;
   userId: string;
+  carnetId?: string;
+  recordedBy?: string;
   valueMgDl: number;
   context: Reading["context"];
   postMealOffset?: Reading["postMealOffset"];
@@ -103,6 +105,8 @@ function mapConvexReading(doc: {
   return {
     _id: doc._id,
     userId: doc.userId,
+    carnetId: doc.carnetId,
+    recordedBy: doc.recordedBy,
     valueMgDl: doc.valueMgDl,
     context: doc.context,
     postMealOffset: doc.postMealOffset,

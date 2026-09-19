@@ -24,7 +24,8 @@ function Gate() {
   useEffect(() => {
     if (!ready) return;
     const inOnboarding = includes(segments as string[], "onboarding");
-    if (!settings.onboarded && !inOnboarding) {
+    const inJoin = includes(segments as string[], "rejoindre");
+    if (!settings.onboarded && !inOnboarding && !inJoin) {
       router.replace("/onboarding");
     }
   }, [ready, router, segments, settings.onboarded]);
@@ -39,6 +40,7 @@ function Gate() {
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="onboarding" />
+        <Stack.Screen name="rejoindre" />
         <Stack.Screen name="ajouter" />
         <Stack.Screen name="mesure/[id]" />
       </Stack>

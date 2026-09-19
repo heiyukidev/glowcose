@@ -10,6 +10,28 @@ import {
   type ThresholdPreset,
 } from "@glowcose/core";
 
+type CarnetSettingsRemote = {
+  updateSettings: (patch: {
+    diabetesType?: DiabetesType;
+    thresholds?: ThresholdPreset;
+  }) => Promise<void>;
+};
+
+let carnetSettingsRemote: CarnetSettingsRemote | null = null;
+
+export function setCarnetSettingsRemote(
+  remote: CarnetSettingsRemote | null,
+): void {
+  carnetSettingsRemote = remote;
+}
+
+function syncCarnetSettings(patch: {
+  diabetesType?: DiabetesType;
+  thresholds?: ThresholdPreset;
+}): void {
+  void carnetSettingsRemote?.updateSettings(patch);
+}
+
 const STORAGE_KEY = "glowcose.settings.v2";
 const listeners = new Set<() => void>();
 
@@ -98,6 +120,10 @@ export function completeOnboarding(diabetesType: DiabetesType): AppSettings {
     thresholds: cloneDeep(THRESHOLD_PRESETS[diabetesType]),
   };
   saveSettings(next);
+  syncCarnetSettings({
+    diabetesType,
+    thresholds: next.thresholds,
+  });
   return next;
 }
 
@@ -106,21 +132,26 @@ export function updateUnit(unit: GlucoseUnit): void {
 }
 
 export function updateDiabetesType(diabetesType: DiabetesType): void {
+  const thresholds = cloneDeep(THRESHOLD_PRESETS[diabetesType]);
   saveSettings({
     ...getSettingsSnapshot(),
     diabetesType,
-    thresholds: cloneDeep(THRESHOLD_PRESETS[diabetesType]),
+    thresholds,
   });
+  syncCarnetSettings({ diabetesType, thresholds });
 }
 
 export function updateThresholds(thresholds: ThresholdPreset): void {
   saveSettings({ ...getSettingsSnapshot(), thresholds });
+  syncCarnetSettings({ thresholds });
 }
 
 export function resetSettingsToPreset(): void {
   const current = getSettingsSnapshot();
+  const thresholds = cloneDeep(THRESHOLD_PRESETS[current.diabetesType]);
   saveSettings({
     ...current,
-    thresholds: cloneDeep(THRESHOLD_PRESETS[current.diabetesType]),
+    thresholds,
   });
+  syncCarnetSettings({ thresholds });
 }

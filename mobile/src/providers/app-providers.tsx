@@ -1,24 +1,30 @@
 import { useEffect, useState, type ComponentType, type ReactNode } from "react";
+import { ActivityIndicator, View } from "react-native";
 
 import { isClerkConfigured } from "@/runtime";
+import { DemoCarnetProvider } from "@/providers/carnet-provider";
 import { LocalReadingsProvider } from "@/providers/readings-provider";
 import { SettingsProvider } from "@/providers/settings-provider";
+import { colors } from "@/theme";
 
 function LocalTree({ children }: { children: ReactNode }) {
   return (
     <LocalReadingsProvider>
-      <SettingsProvider>{children}</SettingsProvider>
+      <DemoCarnetProvider>
+        <SettingsProvider>{children}</SettingsProvider>
+      </DemoCarnetProvider>
     </LocalReadingsProvider>
   );
 }
 
 export function AppProviders({ children }: { children: ReactNode }) {
+  const clerkEnabled = isClerkConfigured();
   const [Live, setLive] = useState<ComponentType<{ children: ReactNode }> | null>(
     null,
   );
 
   useEffect(() => {
-    if (!isClerkConfigured()) return;
+    if (!clerkEnabled) return;
     let cancelled = false;
     void import("./live-app-providers").then((mod) => {
       if (!cancelled) {
@@ -28,10 +34,25 @@ export function AppProviders({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [clerkEnabled]);
 
   if (Live) {
     return <Live>{children}</Live>;
+  }
+
+  if (clerkEnabled) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: colors.background,
+        }}
+      >
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
   }
 
   return <LocalTree>{children}</LocalTree>;
