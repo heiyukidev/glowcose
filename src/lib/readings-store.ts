@@ -84,15 +84,24 @@ export function saveLocalReadings(readings: Reading[]): void {
 }
 
 export function addLocalReading(input: NewReading): Reading {
-  const readings = getLocalSnapshot();
-  const reading: Reading = {
-    ...input,
-    _id: `local-${Date.now()}`,
-    userId: LOCAL_USER_ID,
-    createdAt: Date.now(),
-  };
-  saveLocalReadings([reading, ...readings]);
+  const [reading] = addLocalReadings([input]);
+  if (!reading) {
+    throw new Error("Enregistrement impossible");
+  }
   return reading;
+}
+
+export function addLocalReadings(inputs: NewReading[]): Reading[] {
+  const readings = getLocalSnapshot();
+  const createdAt = Date.now();
+  const added = map(inputs, (input, index) => ({
+    ...input,
+    _id: `local-${createdAt}-${index}`,
+    userId: LOCAL_USER_ID,
+    createdAt,
+  }));
+  saveLocalReadings([...added, ...readings]);
+  return added;
 }
 
 export function updateLocalReading(

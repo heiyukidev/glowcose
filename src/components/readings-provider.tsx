@@ -9,12 +9,13 @@ import {
   type ReactNode,
 } from "react";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
-import { find, map, orderBy } from "lodash";
+import { find, map, orderBy, size } from "lodash";
 
 import { api } from "../../convex/_generated/api";
 import {
   activeReadings,
   addLocalReading,
+  addLocalReadings,
   archiveLocalReading,
   getLocalServerSnapshot,
   getLocalSnapshot,
@@ -22,12 +23,16 @@ import {
   subscribeLocalStore,
   updateLocalReading,
 } from "@/lib/readings-store";
+import { planImport } from "@/lib/csv-import";
 import type { NewReading, Reading } from "@/lib/glucose";
 
 type ReadingsContextValue = {
   readings: Reading[];
   ready: boolean;
   addReading: (input: NewReading) => Promise<void>;
+  importReadings: (
+    incoming: NewReading[],
+  ) => Promise<{ inserted: number; skipped: number }>;
   updateReading: (id: string, input: NewReading) => Promise<void>;
   archiveReading: (id: string) => Promise<void>;
   getReading: (id: string) => Reading | undefined;
@@ -57,6 +62,12 @@ function useLocalReadingsState(): ReadingsContextValue {
     addLocalReading(input);
   }, []);
 
+  const importReadings = useCallback(async (incoming: NewReading[]) => {
+    const { toAdd, skippedDuplicate } = planImport(readings, incoming);
+    addLocalReadings(toAdd);
+    return { inserted: size(toAdd), skipped: skippedDuplicate };
+  }, [readings]);
+
   const updateReading = useCallback(async (id: string, input: NewReading) => {
     updateLocalReading(id, input);
   }, []);
@@ -75,11 +86,20 @@ function useLocalReadingsState(): ReadingsContextValue {
       readings,
       ready,
       addReading,
+      importReadings,
       updateReading,
       archiveReading,
       getReading,
     }),
-    [addReading, archiveReading, getReading, readings, ready, updateReading],
+    [
+      addReading,
+      archiveReading,
+      getReading,
+      importReadings,
+      readings,
+      ready,
+      updateReading,
+    ],
   );
 }
 
@@ -128,6 +148,7 @@ export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
     isAuthenticated ? {} : "skip",
   );
   const addMutation = useMutation(api.readings.add);
+  const importMutation = useMutation(api.readings.importMany);
   const updateMutation = useMutation(api.readings.update);
   const archiveMutation = useMutation(api.readings.archive);
 
@@ -140,6 +161,16 @@ export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
       await addMutation(input);
     },
     [addMutation, isAuthenticated, local],
+  );
+
+  const importReadings = useCallback(
+    async (incoming: NewReading[]) => {
+      if (!isAuthenticated) {
+        return await local.importReadings(incoming);
+      }
+      return await importMutation({ readings: incoming });
+    },
+    [importMutation, isAuthenticated, local],
   );
 
   const updateReading = useCallback(
@@ -177,6 +208,7 @@ export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
       readings,
       ready: !isLoading && convexReadings !== undefined,
       addReading,
+      importReadings,
       updateReading,
       archiveReading,
       getReading: (id: string) => find(readings, (reading) => reading._id === id),
@@ -185,6 +217,7 @@ export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
     addReading,
     archiveReading,
     convexReadings,
+    importReadings,
     isAuthenticated,
     isLoading,
     local,

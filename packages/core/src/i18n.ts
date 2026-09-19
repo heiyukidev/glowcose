@@ -67,6 +67,25 @@ const FRENCH_MESSAGES = {
   "settings.title": "Réglages",
   "settings.lead":
     "Unités d’affichage et seuils (mg/dL). Les valeurs restent stockées en mg/dL.",
+  "import.title": "Importer des mesures",
+  "import.lead":
+    "CSV de glycémie capillaire (export myDiabby). Les doublons déjà dans le carnet sont ignorés.",
+  "import.choose": "Choisir un fichier CSV",
+  "import.confirm": "Ajouter {{count}} mesures",
+  "import.reset": "Annuler",
+  "import.previewAdd": "{{count}} mesures à ajouter",
+  "import.previewSkip": "{{count}} déjà présentes",
+  "import.previewReject": "{{count}} lignes ignorées",
+  "import.success": "{{count}} mesures ajoutées",
+  "import.error.empty": "Fichier vide.",
+  "import.error.notGlucose":
+    "Ce fichier n’est pas un export de glycémie capillaire.",
+  "import.error.cgm":
+    "Ce fichier ressemble à du glucose en continu. Gluciel n’importe que les glycémies capillaires.",
+  "import.error.noRows":
+    "Aucune glycémie capillaire lisible dans ce fichier.",
+  "import.error.tooLarge": "Ce fichier contient trop de lignes.",
+  "import.error.failed": "Import impossible pour le moment.",
   "add.title": "Nouvelle glycémie",
   "add.lead": "Valeur, contexte, enregistrer.",
   "edit.title": "Modifier",

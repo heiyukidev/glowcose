@@ -1,6 +1,7 @@
-import { filter } from "lodash";
+import { filter, size } from "lodash";
 import { v } from "convex/values";
 
+import { planImport } from "../packages/core/src/csv-import";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
@@ -89,6 +90,14 @@ export const list = query({
   },
 });
 
+const importedReading = v.object({
+  valueMgDl: v.number(),
+  context: readingContext,
+  postMealOffset: v.optional(postMealOffset),
+  note: v.optional(v.string()),
+  takenAt: v.number(),
+});
+
 export const add = mutation({
   args: {
     valueMgDl: v.number(),
@@ -115,6 +124,44 @@ export const add = mutation({
       takenAt: args.takenAt,
       createdAt,
     });
+  },
+});
+
+export const importMany = mutation({
+  args: { readings: v.array(importedReading) },
+  returns: v.object({
+    inserted: v.number(),
+    skipped: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx);
+    const carnetId = await requireCarnetId(ctx, userId);
+    const existing = await ctx.db
+      .query("readings")
+      .withIndex("by_carnet_takenAt", (q) => q.eq("carnetId", carnetId))
+      .collect();
+    const { toAdd, skippedDuplicate } = planImport(existing, args.readings);
+    const createdAt = Date.now();
+    for (const reading of toAdd) {
+      if (!Number.isFinite(reading.takenAt) || reading.valueMgDl < 20 || reading.valueMgDl > 600) {
+        throw new Error("Mesure invalide");
+      }
+      await ctx.db.insert("readings", {
+        userId,
+        carnetId,
+        recordedBy: userId,
+        valueMgDl: reading.valueMgDl,
+        context: reading.context,
+        postMealOffset: reading.postMealOffset,
+        note: reading.note,
+        takenAt: reading.takenAt,
+        createdAt,
+      });
+    }
+    return {
+      inserted: size(toAdd),
+      skipped: skippedDuplicate,
+    };
   },
 });
 
