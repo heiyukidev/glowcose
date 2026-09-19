@@ -2,8 +2,8 @@ import {
   compact,
   deburr,
   filter,
-  find,
   findIndex,
+  fromPairs,
   get,
   includes,
   map,
@@ -13,6 +13,7 @@ import {
   some,
   sortBy,
   toLower,
+  toPairs,
   trim,
 } from "lodash";
 
@@ -38,6 +39,29 @@ export type CsvImportError =
 export type CsvImportParse =
   | { ok: false; error: CsvImportError }
   | { ok: true; readings: NewReading[]; rejected: number };
+
+export const CORRESPONDENCE_FIELDS = [
+  { key: "date", required: true },
+  { key: "time", required: true },
+  { key: "value", required: true },
+  { key: "unit", required: false },
+  { key: "context", required: false },
+  { key: "mealType", required: false },
+  { key: "postPrandial", required: false },
+  { key: "note", required: false },
+] as const;
+
+export type CorrespondenceField = (typeof CORRESPONDENCE_FIELDS)[number]["key"];
+export type Correspondence = Partial<Record<CorrespondenceField, number>>;
+
+export type CsvInspection =
+  | { ok: false; error: CsvImportError }
+  | {
+      ok: true;
+      headers: string[];
+      rows: string[][];
+      guessed: Correspondence;
+    };
 
 const CGM_HEADER_MARKERS = [
   "historic glucose",
@@ -65,7 +89,7 @@ const NON_GLUCOSE_MARKERS = [
 
 const DATE_MARKERS = ["date", "jour", "timestamp", "horodatage"];
 const TIME_MARKERS = ["heure", "time", "hour", "horaire"];
-const VALUE_MARKERS = ["glycemie", "glucose", "valeur"];
+const VALUE_MARKERS = ["glycemie", "glycemia", "glucose", "valeur"];
 const UNIT_MARKERS = ["unite", "unit"];
 const CONTEXT_MARKERS = ["moment", "periode", "contexte", "repas"];
 const NOTE_MARKERS = ["comment", "note", "remarque"];
@@ -113,53 +137,72 @@ export function planImport(
   };
 }
 
-export function parseGlucoseCsv(text: string): CsvImportParse {
-  const trimmed = trim(text);
-  if (trimmed === "") {
-    return { ok: false, error: "empty" };
+export function assignCorrespondence(
+  current: Correspondence,
+  field: CorrespondenceField,
+  columnIndex: number | null,
+): Correspondence {
+  const cleared = fromPairs(
+    filter(toPairs(current), ([, index]) => index !== columnIndex),
+  ) as Correspondence;
+  if (columnIndex === null) {
+    const next = { ...cleared };
+    delete next[field];
+    return next;
   }
+  return { ...cleared, [field]: columnIndex };
+}
 
-  const table = parseCsvTable(trimmed);
-  if (size(table) === 0) {
-    return { ok: false, error: "empty" };
-  }
-
-  const headerIndex = findHeaderRow(table);
-  if (headerIndex === -1) {
-    return { ok: false, error: "not_glucose" };
-  }
-
-  const headerCells = map(get(table, headerIndex) ?? [], normalizeHeader);
-  if (looksLikeCgmHeaders(headerCells)) {
-    return { ok: false, error: "cgm" };
-  }
-
-  const columns = locateColumns(headerCells);
-  if (columns.value === -1 || (columns.date === -1 && columns.dateTime === -1)) {
-    if (looksLikeNonGlucose(headerCells)) {
-      return { ok: false, error: "not_glucose" };
-    }
-    return { ok: false, error: "not_glucose" };
-  }
-
-  const dataRows = filter(
-    table.slice(headerIndex + 1),
-    (row) => !isEmptyRow(row),
+export function missingCorrespondenceFields(
+  correspondence: Correspondence,
+): CorrespondenceField[] {
+  return compact(
+    map(CORRESPONDENCE_FIELDS, (field) => {
+      if (!field.required) {
+        return null;
+      }
+      return get(correspondence, field.key) === undefined ? field.key : null;
+    }),
   );
-  if (size(dataRows) === 0) {
-    return { ok: false, error: "no_rows" };
+}
+
+export function inspectGlucoseCsv(text: string): CsvInspection {
+  const workbook = readWorkbook(text);
+  if (!workbook.ok) {
+    return workbook;
   }
-  if (size(dataRows) > MAX_CSV_IMPORT_ROWS) {
-    return { ok: false, error: "too_large" };
+  return {
+    ok: true,
+    headers: workbook.headers,
+    rows: workbook.rows,
+    guessed: guessedCorrespondence(workbook.columns),
+  };
+}
+
+export function parseGlucoseCsv(
+  text: string,
+  correspondence?: Correspondence,
+): CsvImportParse {
+  const workbook = readWorkbook(text);
+  if (!workbook.ok) {
+    return workbook;
   }
 
-  const headerUnit = unitFromHeader(get(headerCells, columns.value) ?? "");
-  const inferredUnit = inferUnit(dataRows, columns, headerUnit);
+  const columns = correspondence
+    ? columnMapFromCorrespondence(correspondence)
+    : workbook.columns;
+  if (columns.value < 0 || (columns.date < 0 && columns.dateTime < 0)) {
+    return { ok: false, error: "not_glucose" };
+  }
 
+  const headerUnit = unitFromHeader(
+    get(workbook.normalizedHeaders, columns.value) ?? "",
+  );
+  const inferredUnit = inferUnit(workbook.rows, columns, headerUnit);
   const parsed = compact(
-    map(dataRows, (row) => parseDataRow(row, columns, inferredUnit)),
+    map(workbook.rows, (row) => parseDataRow(row, columns, inferredUnit)),
   );
-  const rejected = size(dataRows) - size(parsed);
+  const rejected = size(workbook.rows) - size(parsed);
   if (size(parsed) === 0) {
     return { ok: false, error: "no_rows" };
   }
@@ -177,36 +220,122 @@ type ColumnMap = {
   value: number;
   unit: number;
   context: number;
+  mealType: number;
+  postPrandial: number;
   note: number;
 };
 
+type Workbook =
+  | { ok: false; error: CsvImportError }
+  | {
+      ok: true;
+      headers: string[];
+      normalizedHeaders: string[];
+      rows: string[][];
+      columns: ColumnMap;
+    };
+
+function readWorkbook(text: string): Workbook {
+  const trimmed = trim(text);
+  if (trimmed === "") {
+    return { ok: false, error: "empty" };
+  }
+
+  const table = parseCsvTable(trimmed);
+  if (size(table) === 0) {
+    return { ok: false, error: "empty" };
+  }
+
+  const headerIndex = findHeaderRow(table);
+  if (headerIndex === -1) {
+    return { ok: false, error: "not_glucose" };
+  }
+
+  const headers = get(table, headerIndex) ?? [];
+  const normalizedHeaders = map(headers, normalizeHeader);
+  if (looksLikeCgmHeaders(normalizedHeaders)) {
+    return { ok: false, error: "cgm" };
+  }
+
+  const columns = locateColumns(normalizedHeaders);
+  if (columns.value === -1 || (columns.date === -1 && columns.dateTime === -1)) {
+    return { ok: false, error: "not_glucose" };
+  }
+
+  const rows = filter(table.slice(headerIndex + 1), (row) => !isEmptyRow(row));
+  if (size(rows) === 0) {
+    return { ok: false, error: "no_rows" };
+  }
+  if (size(rows) > MAX_CSV_IMPORT_ROWS) {
+    return { ok: false, error: "too_large" };
+  }
+
+  return {
+    ok: true,
+    headers,
+    normalizedHeaders,
+    rows,
+    columns,
+  };
+}
+
+function guessedCorrespondence(columns: ColumnMap): Correspondence {
+  const guessed: Correspondence = {};
+  if (columns.date >= 0) {
+    guessed.date = columns.date;
+  } else if (columns.dateTime >= 0) {
+    guessed.date = columns.dateTime;
+  }
+  if (columns.time >= 0) {
+    guessed.time = columns.time;
+  }
+  if (columns.value >= 0) {
+    guessed.value = columns.value;
+  }
+  if (columns.unit >= 0) {
+    guessed.unit = columns.unit;
+  }
+  if (columns.context >= 0) {
+    guessed.context = columns.context;
+  }
+  if (columns.mealType >= 0) {
+    guessed.mealType = columns.mealType;
+  }
+  if (columns.postPrandial >= 0) {
+    guessed.postPrandial = columns.postPrandial;
+  }
+  if (columns.note >= 0) {
+    guessed.note = columns.note;
+  }
+  return guessed;
+}
+
+function columnMapFromCorrespondence(correspondence: Correspondence): ColumnMap {
+  return {
+    dateTime: -1,
+    date: get(correspondence, "date") ?? -1,
+    time: get(correspondence, "time") ?? -1,
+    value: get(correspondence, "value") ?? -1,
+    unit: get(correspondence, "unit") ?? -1,
+    context: get(correspondence, "context") ?? -1,
+    mealType: get(correspondence, "mealType") ?? -1,
+    postPrandial: get(correspondence, "postPrandial") ?? -1,
+    note: get(correspondence, "note") ?? -1,
+  };
+}
+
 function parseCsvTable(text: string): string[][] {
   const withoutBom = text.replace(/^\uFEFF/, "");
-  const lines = compact(
-    map(withoutBom.replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n"), trim),
-  );
-  const body = filter(
-    lines,
-    (line) => !startsWithIgnoreCase(line, "sep="),
-  );
-  const delimiter = detectDelimiter(body);
-  return compact(map(body, (line) => parseCsvLine(line, delimiter)));
-}
-
-function detectDelimiter(lines: string[]): "," | ";" {
-  const sample = find(lines, (line) => includes(line, ";") || includes(line, ",")) ?? "";
-  const semi = size(filter(sample, (char) => char === ";"));
-  const comma = size(filter(sample, (char) => char === ","));
-  return semi >= comma ? ";" : ",";
-}
-
-function parseCsvLine(line: string, delimiter: "," | ";"): string[] {
-  const cells: string[] = [];
+  const source = withoutBom.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
+  const delimiter = detectDelimiter(source);
+  const rows: string[][] = [];
+  let row: string[] = [];
   let current = "";
   let inQuotes = false;
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-    const next = line[index + 1];
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    const next = source[index + 1];
     if (char === '"') {
       if (inQuotes && next === '"') {
         current += '"';
@@ -217,21 +346,66 @@ function parseCsvLine(line: string, delimiter: "," | ";"): string[] {
       continue;
     }
     if (char === delimiter && !inQuotes) {
-      cells.push(trim(current));
+      row.push(trim(current));
       current = "";
+      continue;
+    }
+    if (char === "\n" && !inQuotes) {
+      row.push(trim(current));
+      current = "";
+      pushRow(rows, row);
+      row = [];
       continue;
     }
     current += char;
   }
-  cells.push(trim(current));
-  return cells;
+  row.push(trim(current));
+  pushRow(rows, row);
+  return rows;
+}
+
+function pushRow(rows: string[][], row: string[]): void {
+  if (isEmptyRow(row)) {
+    return;
+  }
+  if (startsWithIgnoreCase(get(row, 0) ?? "", "sep=")) {
+    return;
+  }
+  rows.push(row);
+}
+
+function detectDelimiter(source: string): "," | ";" {
+  let semi = 0;
+  let comma = 0;
+  let inQuotes = false;
+  const sample = source.slice(0, 2000);
+  for (let index = 0; index < sample.length; index += 1) {
+    const char = sample[index];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+    if (inQuotes) {
+      continue;
+    }
+    if (char === ";") {
+      semi += 1;
+    }
+    if (char === ",") {
+      comma += 1;
+    }
+  }
+  return semi >= comma && semi > 0 ? ";" : ",";
 }
 
 function findHeaderRow(table: string[][]): number {
   return findIndex(table, (row) => {
     const cells = map(row, normalizeHeader);
     const hasValue = some(cells, isValueHeader);
-    const hasDate = some(cells, (cell) => isDateHeader(cell) || isDateTimeHeader(cell));
+    const hasDate = some(
+      cells,
+      (cell) => isDateHeader(cell) || isDateTimeHeader(cell),
+    );
     return hasValue && hasDate;
   });
 }
@@ -239,11 +413,19 @@ function findHeaderRow(table: string[][]): number {
 function locateColumns(headers: string[]): ColumnMap {
   return {
     dateTime: findIndex(headers, isDateTimeHeader),
-    date: findIndex(headers, (cell) => isDateHeader(cell) && !isDateTimeHeader(cell)),
-    time: findIndex(headers, (cell) => isTimeHeader(cell) && !isDateTimeHeader(cell)),
+    date: findIndex(
+      headers,
+      (cell) => isDateHeader(cell) && !isDateTimeHeader(cell),
+    ),
+    time: findIndex(
+      headers,
+      (cell) => isTimeHeader(cell) && !isDateTimeHeader(cell),
+    ),
     value: findIndex(headers, isValueHeader),
     unit: findIndex(headers, isUnitHeader),
     context: findIndex(headers, isContextHeader),
+    mealType: findIndex(headers, isMealTypeHeader),
+    postPrandial: findIndex(headers, isPostPrandialHeader),
     note: findIndex(headers, isNoteHeader),
   };
 }
@@ -269,8 +451,7 @@ function parseDataRow(
     return null;
   }
 
-  const contextRaw = columns.context >= 0 ? cellAt(row, columns.context) : "";
-  const mapped = mapContext(contextRaw, takenAt);
+  const mapped = resolveContext(row, columns, takenAt);
   const noteRaw = columns.note >= 0 ? cellAt(row, columns.note) : "";
   const note = trim(noteRaw);
 
@@ -281,6 +462,46 @@ function parseDataRow(
     takenAt,
     ...(note !== "" ? { note } : {}),
   };
+}
+
+function resolveContext(
+  row: string[],
+  columns: ColumnMap,
+  takenAt: number,
+): { context: ReadingContext; postMealOffset?: PostMealOffset } {
+  const coded = contextFromMealType(
+    columns.mealType >= 0 ? cellAt(row, columns.mealType) : "",
+    columns.postPrandial >= 0 ? cellAt(row, columns.postPrandial) : "",
+  );
+  if (coded) {
+    return coded;
+  }
+  const contextRaw = columns.context >= 0 ? cellAt(row, columns.context) : "";
+  return mapContext(contextRaw, takenAt);
+}
+
+function contextFromMealType(
+  mealType: string,
+  postPrandial: string,
+): { context: ReadingContext; postMealOffset?: PostMealOffset } | null {
+  const meal = trim(mealType);
+  const after = trim(postPrandial) === "1";
+  if (meal === "0") {
+    return after
+      ? { context: "after_breakfast", postMealOffset: 2 }
+      : { context: "before_breakfast" };
+  }
+  if (meal === "1") {
+    return after
+      ? { context: "after_lunch", postMealOffset: 2 }
+      : { context: "before_lunch" };
+  }
+  if (meal === "2") {
+    return after
+      ? { context: "after_dinner", postMealOffset: 2 }
+      : { context: "before_dinner" };
+  }
+  return null;
 }
 
 function parseValueCell(raw: string, unit: GlucoseUnit): number | null {
@@ -297,10 +518,7 @@ function inferUnit(
     return headerUnit;
   }
   const values = compact(
-    map(rows, (row) => {
-      const raw = parseNumericCell(cellAt(row, columns.value));
-      return raw;
-    }),
+    map(rows, (row) => parseNumericCell(cellAt(row, columns.value))),
   );
   const highest = max(values) ?? 0;
   if (highest > 33) return "mgdl";
@@ -445,12 +663,6 @@ function isCgmHeader(header: string): boolean {
   return some(CGM_HEADER_MARKERS, (marker) => includes(header, marker));
 }
 
-function looksLikeNonGlucose(headers: string[]): boolean {
-  return some(headers, (header) =>
-    some(NON_GLUCOSE_MARKERS, (marker) => includes(header, marker)),
-  );
-}
-
 function looksLikeCgmSeries(readings: NewReading[]): boolean {
   if (size(readings) < 36) {
     return false;
@@ -494,15 +706,33 @@ function isTimeHeader(header: string): boolean {
 }
 
 function isUnitHeader(header: string): boolean {
+  if (isValueHeader(header)) return false;
   return some(UNIT_MARKERS, (marker) => includes(header, marker));
 }
 
+function isMealTypeHeader(header: string): boolean {
+  return (
+    (includes(header, "type") && includes(header, "meal")) ||
+    (includes(header, "type") && includes(header, "repas"))
+  );
+}
+
+function isPostPrandialHeader(header: string): boolean {
+  return includes(header, "post prandial") || includes(header, "postprand");
+}
+
 function isContextHeader(header: string): boolean {
+  if (isMealTypeHeader(header) || isPostPrandialHeader(header)) {
+    return false;
+  }
   return some(CONTEXT_MARKERS, (marker) => includes(header, marker));
 }
 
 function isNoteHeader(header: string): boolean {
-  return some(NOTE_MARKERS, (marker) => includes(header, marker));
+  if (some(NOTE_MARKERS, (marker) => includes(header, marker))) {
+    return true;
+  }
+  return includes(header, "meal") && includes(header, "description");
 }
 
 function unitFromHeader(header: string): GlucoseUnit | null {
@@ -518,7 +748,7 @@ function unitFromText(raw: string): GlucoseUnit | null {
 }
 
 function normalizeHeader(raw: string): string {
-  return trim(toLower(deburr(raw))).replace(/[^a-z0-9]+/g, " ");
+  return trim(toLower(deburr(raw)).replace(/[^a-z0-9]+/g, " "));
 }
 
 function cellAt(row: string[], index: number): string {

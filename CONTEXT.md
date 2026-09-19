@@ -27,3 +27,7 @@ _Avoid_: Measurement, entry, value (alone), CGM point, scan
 **Invite**:
 A short-lived code that adds a second Member to a Carnet.
 _Avoid_: Share link (as the domain object), invitation email
+
+**Correspondence**:
+The Member-chosen pairing of one CSV column to one Reading field for an import.
+_Avoid_: Mapping, schema, matching, binding
