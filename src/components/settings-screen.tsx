@@ -5,11 +5,9 @@ import { get, map } from "lodash";
 import { AppHeader } from "@/components/app-header";
 import { Chip } from "@/components/chip";
 import { Disclaimer } from "@/components/disclaimer";
-import { useReadings } from "@/components/readings-provider";
 import { useSettings } from "@/components/settings-provider";
 import { ShareCarnet } from "@/components/share-carnet";
 import { UnitToggle } from "@/components/unit-toggle";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -76,7 +74,6 @@ function BandFields({
 }
 
 export function SettingsScreen() {
-  const { source, resetDemo } = useReadings();
   const {
     settings,
     setUnit,
@@ -87,7 +84,7 @@ export function SettingsScreen() {
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pb-8">
-      <AppHeader demo={source === "demo"} />
+      <AppHeader />
       <h1 className="mb-1 font-display text-3xl tracking-tight">Réglages</h1>
       <p className="mb-6 text-sm text-muted-foreground">
         Unités d’affichage et seuils (mg/dL). Les valeurs restent stockées en
@@ -116,7 +113,7 @@ export function SettingsScreen() {
         </div>
         <p className="text-xs text-muted-foreground">
           Changer le type recharge le préréglage de couleurs. Gestationnel =
-          CNGOF/SFD (démo).
+          CNGOF/SFD.
         </p>
       </section>
 
@@ -143,12 +140,6 @@ export function SettingsScreen() {
           </div>
         ))}
       </section>
-
-      {source === "demo" ? (
-        <Button variant="outline" className="mb-6" onClick={resetDemo}>
-          Réinitialiser les mesures démo
-        </Button>
-      ) : null}
 
       <Disclaimer />
     </div>

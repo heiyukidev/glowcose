@@ -3,17 +3,17 @@ import { ActivityIndicator, View } from "react-native";
 
 import { isClerkConfigured } from "@/runtime";
 import { DemoCarnetProvider } from "@/providers/carnet-provider";
-import { DemoReadingsProvider } from "@/providers/readings-provider";
+import { LocalReadingsProvider } from "@/providers/readings-provider";
 import { SettingsProvider } from "@/providers/settings-provider";
 import { colors } from "@/theme";
 
-function DemoTree({ children }: { children: ReactNode }) {
+function LocalTree({ children }: { children: ReactNode }) {
   return (
-    <DemoReadingsProvider>
+    <LocalReadingsProvider>
       <DemoCarnetProvider>
         <SettingsProvider>{children}</SettingsProvider>
       </DemoCarnetProvider>
-    </DemoReadingsProvider>
+    </LocalReadingsProvider>
   );
 }
 
@@ -55,5 +55,5 @@ export function AppProviders({ children }: { children: ReactNode }) {
     );
   }
 
-  return <DemoTree>{children}</DemoTree>;
+  return <LocalTree>{children}</LocalTree>;
 }

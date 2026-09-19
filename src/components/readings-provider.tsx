@@ -14,26 +14,23 @@ import { find, map, orderBy } from "lodash";
 import { api } from "../../convex/_generated/api";
 import {
   activeReadings,
-  addDemoReading,
-  archiveDemoReading,
-  EMPTY_READINGS,
-  getDemoServerSnapshot,
-  getDemoSnapshot,
-  resetDemoReadings,
-  subscribeDemoStore,
-  updateDemoReading,
-} from "@/lib/demo-store";
+  addLocalReading,
+  archiveLocalReading,
+  getLocalServerSnapshot,
+  getLocalSnapshot,
+  isLocalStoreHydrated,
+  subscribeLocalStore,
+  updateLocalReading,
+} from "@/lib/readings-store";
 import type { NewReading, Reading } from "@/lib/glucose";
 
 type ReadingsContextValue = {
   readings: Reading[];
   ready: boolean;
-  source: "demo" | "convex";
   addReading: (input: NewReading) => Promise<void>;
   updateReading: (id: string, input: NewReading) => Promise<void>;
   archiveReading: (id: string) => Promise<void>;
   getReading: (id: string) => Reading | undefined;
-  resetDemo: () => void;
 };
 
 const ReadingsContext = createContext<ReadingsContextValue | null>(null);
@@ -42,25 +39,30 @@ function sortReadings(readings: Reading[]): Reading[] {
   return orderBy(activeReadings(readings), ["takenAt"], ["desc"]);
 }
 
-function useDemoReadingsState(): ReadingsContextValue {
+function useLocalReadingsState(): ReadingsContextValue {
   const snapshot = useSyncExternalStore(
-    subscribeDemoStore,
-    getDemoSnapshot,
-    getDemoServerSnapshot,
+    subscribeLocalStore,
+    getLocalSnapshot,
+    getLocalServerSnapshot,
+  );
+  const hydrated = useSyncExternalStore(
+    subscribeLocalStore,
+    isLocalStoreHydrated,
+    () => false,
   );
   const readings = useMemo(() => sortReadings(snapshot), [snapshot]);
-  const ready = snapshot !== EMPTY_READINGS;
+  const ready = hydrated;
 
   const addReading = useCallback(async (input: NewReading) => {
-    addDemoReading(input);
+    addLocalReading(input);
   }, []);
 
   const updateReading = useCallback(async (id: string, input: NewReading) => {
-    updateDemoReading(id, input);
+    updateLocalReading(id, input);
   }, []);
 
   const archiveReading = useCallback(async (id: string) => {
-    archiveDemoReading(id);
+    archiveLocalReading(id);
   }, []);
 
   const getReading = useCallback(
@@ -68,35 +70,21 @@ function useDemoReadingsState(): ReadingsContextValue {
     [readings],
   );
 
-  const resetDemo = useCallback(() => {
-    resetDemoReadings();
-  }, []);
-
   return useMemo(
     () => ({
       readings,
       ready,
-      source: "demo" as const,
       addReading,
       updateReading,
       archiveReading,
       getReading,
-      resetDemo,
     }),
-    [
-      addReading,
-      archiveReading,
-      getReading,
-      readings,
-      ready,
-      resetDemo,
-      updateReading,
-    ],
+    [addReading, archiveReading, getReading, readings, ready, updateReading],
   );
 }
 
-export function DemoReadingsProvider({ children }: { children: ReactNode }) {
-  const value = useDemoReadingsState();
+export function LocalReadingsProvider({ children }: { children: ReactNode }) {
+  const value = useLocalReadingsState();
   return (
     <ReadingsContext.Provider value={value}>{children}</ReadingsContext.Provider>
   );
@@ -134,7 +122,7 @@ function mapConvexReading(doc: {
 
 export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
-  const demo = useDemoReadingsState();
+  const local = useLocalReadingsState();
   const convexReadings = useQuery(
     api.readings.list,
     isAuthenticated ? {} : "skip",
@@ -146,18 +134,18 @@ export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
   const addReading = useCallback(
     async (input: NewReading) => {
       if (!isAuthenticated) {
-        await demo.addReading(input);
+        await local.addReading(input);
         return;
       }
       await addMutation(input);
     },
-    [addMutation, demo, isAuthenticated],
+    [addMutation, isAuthenticated, local],
   );
 
   const updateReading = useCallback(
     async (id: string, input: NewReading) => {
       if (!isAuthenticated) {
-        await demo.updateReading(id, input);
+        await local.updateReading(id, input);
         return;
       }
       await updateMutation({
@@ -165,43 +153,41 @@ export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
         ...input,
       });
     },
-    [demo, isAuthenticated, updateMutation],
+    [isAuthenticated, local, updateMutation],
   );
 
   const archiveReading = useCallback(
     async (id: string) => {
       if (!isAuthenticated) {
-        await demo.archiveReading(id);
+        await local.archiveReading(id);
         return;
       }
       await archiveMutation({ id: id as never });
     },
-    [archiveMutation, demo, isAuthenticated],
+    [archiveMutation, isAuthenticated, local],
   );
 
   const value = useMemo<ReadingsContextValue>(() => {
     if (!isAuthenticated) {
-      return demo;
+      return local;
     }
     const mapped = map(convexReadings ?? [], mapConvexReading);
     const readings = sortReadings(mapped);
     return {
       readings,
       ready: !isLoading && convexReadings !== undefined,
-      source: "convex",
       addReading,
       updateReading,
       archiveReading,
       getReading: (id: string) => find(readings, (reading) => reading._id === id),
-      resetDemo: demo.resetDemo,
     };
   }, [
     addReading,
     archiveReading,
     convexReadings,
-    demo,
     isAuthenticated,
     isLoading,
+    local,
     updateReading,
   ]);
 

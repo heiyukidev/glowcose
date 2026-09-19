@@ -1,11 +1,10 @@
 import { useEffect, useState, type ComponentType } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { Logo } from "@/components/logo";
-import { colors } from "@/theme";
 import { isClerkConfigured } from "@/runtime";
 
-export function AppHeader({ demo }: { demo: boolean }) {
+export function AppHeader() {
   const [ClerkControls, setClerkControls] = useState<ComponentType | null>(
     null,
   );
@@ -27,11 +26,6 @@ export function AppHeader({ demo }: { demo: boolean }) {
     <View style={styles.header}>
       <Logo />
       <View style={styles.actions}>
-        {demo ? (
-          <View style={styles.badge}>
-            <Text style={styles.badgeLabel}>Mode démo</Text>
-          </View>
-        ) : null}
         {ClerkControls ? <ClerkControls /> : null}
       </View>
     </View>
@@ -51,16 +45,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     flexShrink: 1,
-  },
-  badge: {
-    backgroundColor: colors.mutedSurface,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  badgeLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.foreground,
   },
 });

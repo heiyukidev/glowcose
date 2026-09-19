@@ -12,10 +12,10 @@ export default function SignInPage() {
     return (
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-4 px-4 text-center">
         <Logo />
-        <h1 className="font-display text-2xl">Mode démo</h1>
+        <h1 className="font-display text-2xl">Connexion indisponible</h1>
         <p className="text-sm text-muted-foreground">
-          Clerk n’est pas configuré. Vous pouvez déjà cliquer dans l’app ; les
-          mesures restent sur cet appareil.
+          Le compte n’est pas configuré. Vous pouvez déjà utiliser le carnet ;
+          les mesures restent sur cet appareil.
         </p>
         <Link href="/" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
           Ouvrir le carnet
@@ -35,7 +35,7 @@ export default function SignInPage() {
       </div>
       <SignIn routing="hash" fallbackRedirectUrl="/" />
       <Link href="/" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
-        Continuer en démo
+        Continuer sans compte
       </Link>
     </div>
   );

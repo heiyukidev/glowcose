@@ -10,10 +10,9 @@ import {
 import { Screen } from "@/components/screen";
 import { AppHeader } from "@/components/header";
 import { Disclaimer } from "@/components/disclaimer";
-import { Chip, Button } from "@/components/ui";
+import { Chip } from "@/components/ui";
 import { UnitToggle } from "@/components/unit-toggle";
 import { ShareCarnet } from "@/components/share-carnet";
-import { useReadings } from "@/providers/readings-provider";
 import { useSettings } from "@/providers/settings-provider";
 import { colors } from "@/theme";
 
@@ -71,7 +70,6 @@ function BandFields({
 }
 
 export default function SettingsRoute() {
-  const { source, resetDemo } = useReadings();
   const {
     settings,
     setUnit,
@@ -82,7 +80,7 @@ export default function SettingsRoute() {
 
   return (
     <Screen>
-      <AppHeader demo={source === "demo"} />
+      <AppHeader />
       <Text style={styles.title}>Réglages</Text>
       <Text style={styles.lead}>
         Unités d’affichage et seuils (mg/dL). Les valeurs restent stockées en
@@ -107,7 +105,7 @@ export default function SettingsRoute() {
       </View>
       <Text style={styles.hint}>
         Changer le type recharge le préréglage de couleurs. Gestationnel =
-        CNGOF/SFD (démo).
+        CNGOF/SFD.
       </Text>
 
       <View style={styles.thresholdHead}>
@@ -127,15 +125,6 @@ export default function SettingsRoute() {
           />
         </View>
       ))}
-
-      {source === "demo" ? (
-        <Button
-          title="Réinitialiser les mesures démo"
-          variant="outline"
-          onPress={resetDemo}
-          style={styles.demoReset}
-        />
-      ) : null}
 
       <Disclaimer style={styles.disclaimer} />
     </Screen>
@@ -224,10 +213,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingHorizontal: 8,
     color: colors.foreground,
-  },
-  demoReset: {
-    marginTop: 12,
-    marginBottom: 8,
   },
   disclaimer: {
     marginTop: 16,

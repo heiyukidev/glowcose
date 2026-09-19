@@ -14,7 +14,7 @@ import {
 } from "@/components/carnet-provider";
 import {
   ConvexReadingsProvider,
-  DemoReadingsProvider,
+  LocalReadingsProvider,
 } from "@/components/readings-provider";
 import { SettingsProvider } from "@/components/settings-provider";
 import { isClerkConfigured, isConvexConfigured } from "@/lib/runtime";
@@ -35,6 +35,14 @@ function ThemeAndToaster({ children }: { children: ReactNode }) {
   );
 }
 
+function LocalTree({ children }: { children: ReactNode }) {
+  return (
+    <LocalReadingsProvider>
+      <DemoCarnetProvider>{children}</DemoCarnetProvider>
+    </LocalReadingsProvider>
+  );
+}
+
 function ConvexTree({ children }: { children: ReactNode }) {
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
   const client = useMemo(
@@ -43,11 +51,7 @@ function ConvexTree({ children }: { children: ReactNode }) {
   );
 
   if (!client) {
-    return (
-      <DemoReadingsProvider>
-        <DemoCarnetProvider>{children}</DemoCarnetProvider>
-      </DemoReadingsProvider>
-    );
+    return <LocalTree>{children}</LocalTree>;
   }
 
   return (
@@ -73,17 +77,11 @@ export function AppProviders({ children }: { children: ReactNode }) {
         {convexEnabled ? (
           <ConvexTree>{inner}</ConvexTree>
         ) : (
-          <DemoReadingsProvider>
-            <DemoCarnetProvider>{inner}</DemoCarnetProvider>
-          </DemoReadingsProvider>
+          <LocalTree>{inner}</LocalTree>
         )}
       </ClerkProvider>
     );
   }
 
-  return (
-    <DemoReadingsProvider>
-      <DemoCarnetProvider>{inner}</DemoCarnetProvider>
-    </DemoReadingsProvider>
-  );
+  return <LocalTree>{inner}</LocalTree>;
 }
