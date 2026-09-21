@@ -36,6 +36,7 @@ type ReadingsContextValue = {
   updateReading: (id: string, input: NewReading) => Promise<void>;
   archiveReading: (id: string) => Promise<void>;
   getReading: (id: string) => Reading | undefined;
+  uploadPhoto?: (blob: Blob) => Promise<string>;
 };
 
 const ReadingsContext = createContext<ReadingsContextValue | null>(null);
@@ -115,11 +116,14 @@ function mapConvexReading(doc: {
   userId: string;
   carnetId?: string;
   recordedBy?: string;
+  mealId?: string;
   valueMgDl: number;
   context: Reading["context"];
   postMealOffset?: Reading["postMealOffset"];
   note?: string;
+  photos?: Reading["photos"];
   photoUrl?: string;
+  photoStorageId?: string;
   takenAt: number;
   createdAt: number;
   archivedAt?: number;
@@ -129,11 +133,14 @@ function mapConvexReading(doc: {
     userId: doc.userId,
     carnetId: doc.carnetId,
     recordedBy: doc.recordedBy,
+    mealId: doc.mealId,
     valueMgDl: doc.valueMgDl,
     context: doc.context,
     postMealOffset: doc.postMealOffset,
     note: doc.note,
+    photos: doc.photos,
     photoUrl: doc.photoUrl,
+    photoStorageId: doc.photoStorageId,
     takenAt: doc.takenAt,
     createdAt: doc.createdAt,
     archivedAt: doc.archivedAt,
@@ -151,6 +158,29 @@ export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
   const importMutation = useMutation(api.readings.importMany);
   const updateMutation = useMutation(api.readings.update);
   const archiveMutation = useMutation(api.readings.archive);
+  const generatePhotoUploadUrl = useMutation(
+    api.readings.generatePhotoUploadUrl,
+  );
+
+  const uploadPhoto = useCallback(
+    async (blob: Blob) => {
+      const postUrl = await generatePhotoUploadUrl();
+      const result = await fetch(postUrl, {
+        method: "POST",
+        headers: { "Content-Type": blob.type || "image/jpeg" },
+        body: blob,
+      });
+      if (!result.ok) {
+        throw new Error("Photo upload failed");
+      }
+      const payload = (await result.json()) as { storageId?: string };
+      if (!payload.storageId) {
+        throw new Error("Photo upload failed");
+      }
+      return payload.storageId;
+    },
+    [generatePhotoUploadUrl],
+  );
 
   const addReading = useCallback(
     async (input: NewReading) => {
@@ -158,7 +188,18 @@ export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
         await local.addReading(input);
         return;
       }
-      await addMutation(input);
+      await addMutation({
+        valueMgDl: input.valueMgDl,
+        context: input.context,
+        postMealOffset: input.postMealOffset,
+        note: input.note,
+        takenAt: input.takenAt,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        ...(input.photos ? { photos: input.photos as never } : {}),
+        ...(input.photoStorageId
+          ? { photoStorageId: input.photoStorageId as never }
+          : {}),
+      });
     },
     [addMutation, isAuthenticated, local],
   );
@@ -168,7 +209,10 @@ export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
       if (!isAuthenticated) {
         return await local.importReadings(incoming);
       }
-      return await importMutation({ readings: incoming });
+      return await importMutation({
+        readings: incoming,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      });
     },
     [importMutation, isAuthenticated, local],
   );
@@ -181,7 +225,17 @@ export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
       }
       await updateMutation({
         id: id as never,
-        ...input,
+        valueMgDl: input.valueMgDl,
+        context: input.context,
+        postMealOffset: input.postMealOffset,
+        note: input.note,
+        takenAt: input.takenAt,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        ...(input.photos ? { photos: input.photos as never } : {}),
+        ...(input.photoStorageId
+          ? { photoStorageId: input.photoStorageId as never }
+          : {}),
+        ...(input.photoUrl ? { photoUrl: input.photoUrl } : {}),
       });
     },
     [isAuthenticated, local, updateMutation],
@@ -202,7 +256,7 @@ export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
     if (!isAuthenticated) {
       return local;
     }
-    const mapped = map(convexReadings ?? [], mapConvexReading);
+    const mapped = map(convexReadings ?? [], (doc) => mapConvexReading(doc));
     const readings = sortReadings(mapped);
     return {
       readings,
@@ -211,6 +265,7 @@ export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
       importReadings,
       updateReading,
       archiveReading,
+      uploadPhoto,
       getReading: (id: string) => find(readings, (reading) => reading._id === id),
     };
   }, [
@@ -222,6 +277,7 @@ export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
     isLoading,
     local,
     updateReading,
+    uploadPhoto,
   ]);
 
   return (

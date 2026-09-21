@@ -1,12 +1,21 @@
-import { filter, size } from "lodash";
+import { compact, filter, isUndefined, keyBy, map, omit, omitBy, orderBy, size, uniq } from "lodash";
 import { v } from "convex/values";
 
 import { planImport } from "../packages/core/src/csv-import";
-import type { Id } from "./_generated/dataModel";
+import type { MealPhoto } from "../packages/core/src/meal";
+import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 import { requireUserId } from "./lib/auth";
-import { postMealOffset, readingContext } from "./schema";
+import {
+  archiveMealIfEmpty,
+  asStoredPhotos,
+  attachMeal,
+  incomingPhotos,
+  requireStoredPhoto,
+  resolvePhotoUrls,
+} from "./lib/meals";
+import { mealPhoto, postMealOffset, readingContext } from "./schema";
 
 const readingReturn = v.object({
   _id: v.id("readings"),
@@ -14,11 +23,14 @@ const readingReturn = v.object({
   userId: v.string(),
   carnetId: v.optional(v.id("carnets")),
   recordedBy: v.optional(v.string()),
+  mealId: v.optional(v.id("meals")),
   valueMgDl: v.number(),
   context: readingContext,
   postMealOffset: v.optional(postMealOffset),
   note: v.optional(v.string()),
+  photos: v.array(mealPhoto),
   photoUrl: v.optional(v.string()),
+  photoStorageId: v.optional(v.id("_storage")),
   takenAt: v.number(),
   createdAt: v.number(),
   archivedAt: v.optional(v.number()),
@@ -70,6 +82,90 @@ async function loadReadableReading(
   return reading;
 }
 
+async function presentReading(
+  ctx: QueryCtx,
+  row: Doc<"readings">,
+  meal?: Doc<"meals"> | null,
+) {
+  let note = row.note;
+  let photos: MealPhoto[] =
+    incomingPhotos({
+      photoStorageId: row.photoStorageId,
+      photoUrl: row.photoUrl,
+    }) ?? [];
+  const resolvedMeal = meal ?? (row.mealId ? await ctx.db.get(row.mealId) : null);
+  if (resolvedMeal && !resolvedMeal.archivedAt) {
+    note = resolvedMeal.note;
+    photos = resolvedMeal.photos;
+  }
+  const resolved = await resolvePhotoUrls(ctx, photos);
+  const first = resolved[0];
+  return {
+    _id: row._id,
+    _creationTime: row._creationTime,
+    userId: row.userId,
+    carnetId: row.carnetId,
+    recordedBy: row.recordedBy,
+    mealId: row.mealId,
+    valueMgDl: row.valueMgDl,
+    context: row.context,
+    postMealOffset: row.postMealOffset,
+    note,
+    photos: asStoredPhotos(resolved),
+    photoUrl: first?.url,
+    photoStorageId: first?.storageId as Id<"_storage"> | undefined,
+    takenAt: row.takenAt,
+    createdAt: row.createdAt,
+    archivedAt: row.archivedAt,
+  };
+}
+
+async function liftLegacyReadings(
+  ctx: MutationCtx,
+  carnetId: Id<"carnets">,
+  userId: string,
+  timeZone?: string,
+) {
+  const rows = await ctx.db
+    .query("readings")
+    .withIndex("by_carnet_takenAt", (q) => q.eq("carnetId", carnetId))
+    .collect();
+  const pending = orderBy(
+    filter(rows, (row) => !row.archivedAt && !row.mealId),
+    ["takenAt"],
+    ["asc"],
+  );
+  if (size(pending) === 0) return;
+  let live: Doc<"meals">[] | undefined;
+  for (const row of pending) {
+    const attached = await attachMeal(ctx, {
+      userId,
+      carnetId,
+      context: row.context,
+      takenAt: row.takenAt,
+      note: row.note,
+      photos: incomingPhotos(row),
+      now: row.createdAt,
+      mode: "lift",
+      timeZone,
+      live,
+    });
+    live = attached.live;
+    await ctx.db.patch(row._id, { mealId: attached.mealId });
+  }
+}
+
+async function validatePhotos(
+  ctx: MutationCtx,
+  photos: MealPhoto[],
+) {
+  for (const photo of photos) {
+    if (photo.storageId) {
+      await requireStoredPhoto(ctx, photo.storageId as Id<"_storage">);
+    }
+  }
+}
+
 export const list = query({
   args: {},
   returns: v.array(readingReturn),
@@ -86,7 +182,17 @@ export const list = query({
       )
       .order("desc")
       .collect();
-    return filter(rows, (row) => !row.archivedAt);
+    const liveRows = filter(rows, (row) => !row.archivedAt);
+    const mealIds = uniq(compact(map(liveRows, (row) => row.mealId)));
+    const meals = compact(
+      await Promise.all(map(mealIds, (id) => ctx.db.get(id))),
+    );
+    const mealsById = keyBy(meals, "_id");
+    return await Promise.all(
+      map(liveRows, (row) =>
+        presentReading(ctx, row, row.mealId ? mealsById[row.mealId] : undefined),
+      ),
+    );
   },
 });
 
@@ -98,29 +204,56 @@ const importedReading = v.object({
   takenAt: v.number(),
 });
 
+export const generatePhotoUploadUrl = mutation({
+  args: {},
+  returns: v.string(),
+  handler: async (ctx) => {
+    const userId = await requireUserId(ctx);
+    await requireCarnetId(ctx, userId);
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
 export const add = mutation({
   args: {
     valueMgDl: v.number(),
     context: readingContext,
     postMealOffset: v.optional(postMealOffset),
     note: v.optional(v.string()),
-    photoUrl: v.optional(v.string()),
+    photos: v.optional(v.array(mealPhoto)),
+    photoStorageId: v.optional(v.id("_storage")),
     takenAt: v.number(),
+    timeZone: v.optional(v.string()),
   },
   returns: v.id("readings"),
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
     const carnetId = await requireCarnetId(ctx, userId);
+    await liftLegacyReadings(ctx, carnetId, userId, args.timeZone);
+    const photos = incomingPhotos(args);
+    if (photos) {
+      await validatePhotos(ctx, photos);
+    }
     const createdAt = Date.now();
+    const attached = await attachMeal(ctx, {
+      userId,
+      carnetId,
+      context: args.context,
+      takenAt: args.takenAt,
+      note: args.note,
+      photos,
+      now: createdAt,
+      mode: "replace",
+      timeZone: args.timeZone,
+    });
     return await ctx.db.insert("readings", {
       userId,
       carnetId,
       recordedBy: userId,
+      mealId: attached.mealId,
       valueMgDl: args.valueMgDl,
       context: args.context,
       postMealOffset: args.postMealOffset,
-      note: args.note,
-      photoUrl: args.photoUrl,
       takenAt: args.takenAt,
       createdAt,
     });
@@ -128,7 +261,10 @@ export const add = mutation({
 });
 
 export const importMany = mutation({
-  args: { readings: v.array(importedReading) },
+  args: {
+    readings: v.array(importedReading),
+    timeZone: v.optional(v.string()),
+  },
   returns: v.object({
     inserted: v.number(),
     skipped: v.number(),
@@ -136,24 +272,38 @@ export const importMany = mutation({
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
     const carnetId = await requireCarnetId(ctx, userId);
+    await liftLegacyReadings(ctx, carnetId, userId, args.timeZone);
     const existing = await ctx.db
       .query("readings")
       .withIndex("by_carnet_takenAt", (q) => q.eq("carnetId", carnetId))
       .collect();
     const { toAdd, skippedDuplicate } = planImport(existing, args.readings);
     const createdAt = Date.now();
+    let live: Doc<"meals">[] | undefined;
     for (const reading of toAdd) {
       if (!Number.isFinite(reading.takenAt) || reading.valueMgDl < 20 || reading.valueMgDl > 600) {
         throw new Error("Mesure invalide");
       }
+      const attached = await attachMeal(ctx, {
+        userId,
+        carnetId,
+        context: reading.context,
+        takenAt: reading.takenAt,
+        note: reading.note,
+        now: createdAt,
+        mode: "lift",
+        timeZone: args.timeZone,
+        live,
+      });
+      live = attached.live;
       await ctx.db.insert("readings", {
         userId,
         carnetId,
         recordedBy: userId,
+        mealId: attached.mealId,
         valueMgDl: reading.valueMgDl,
         context: reading.context,
         postMealOffset: reading.postMealOffset,
-        note: reading.note,
         takenAt: reading.takenAt,
         createdAt,
       });
@@ -172,21 +322,62 @@ export const update = mutation({
     context: readingContext,
     postMealOffset: v.optional(postMealOffset),
     note: v.optional(v.string()),
+    photos: v.optional(v.array(mealPhoto)),
+    photoStorageId: v.optional(v.id("_storage")),
     photoUrl: v.optional(v.string()),
     takenAt: v.number(),
+    timeZone: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
-    await loadReadableReading(ctx, args.id, userId);
-    await ctx.db.patch(args.id, {
-      valueMgDl: args.valueMgDl,
+    const reading = await loadReadableReading(ctx, args.id, userId);
+    const carnetId = reading.carnetId ?? (await requireCarnetId(ctx, userId));
+    await liftLegacyReadings(ctx, carnetId, userId, args.timeZone);
+    const photos = incomingPhotos(args);
+    if (photos) {
+      await validatePhotos(ctx, photos);
+    }
+    const now = Date.now();
+    const previousMealId = reading.mealId;
+    const attached = await attachMeal(ctx, {
+      userId,
+      carnetId,
       context: args.context,
-      postMealOffset: args.postMealOffset,
-      note: args.note,
-      photoUrl: args.photoUrl,
       takenAt: args.takenAt,
+      note: args.note,
+      photos,
+      now,
+      mode: "replace",
+      currentMealId: previousMealId,
+      timeZone: args.timeZone,
     });
+    const mealId = attached.mealId;
+    const next = omitBy(
+      {
+        ...omit(reading, [
+          "_id",
+          "_creationTime",
+          "photoStorageId",
+          "photoUrl",
+          "note",
+        ]),
+        carnetId,
+        mealId,
+        valueMgDl: args.valueMgDl,
+        context: args.context,
+        postMealOffset: args.postMealOffset,
+        takenAt: args.takenAt,
+      },
+      isUndefined,
+    );
+    await ctx.db.replace(
+      args.id,
+      next as Omit<Doc<"readings">, "_id" | "_creationTime">,
+    );
+    if (previousMealId && previousMealId !== mealId) {
+      await archiveMealIfEmpty(ctx, previousMealId, now);
+    }
     return null;
   },
 });
@@ -196,8 +387,12 @@ export const archive = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
-    await loadReadableReading(ctx, args.id, userId);
-    await ctx.db.patch(args.id, { archivedAt: Date.now() });
+    const reading = await loadReadableReading(ctx, args.id, userId);
+    const now = Date.now();
+    await ctx.db.patch(args.id, { archivedAt: now });
+    if (reading.mealId) {
+      await archiveMealIfEmpty(ctx, reading.mealId, now);
+    }
     return null;
   },
 });

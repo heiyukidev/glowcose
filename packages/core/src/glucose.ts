@@ -37,16 +37,24 @@ export type ThresholdPreset = {
   other: BandThresholds;
 };
 
+export type MealPhoto = {
+  storageId?: string;
+  url?: string;
+};
+
 export type Reading = {
   _id: string;
   userId: string;
   carnetId?: string;
   recordedBy?: string;
+  mealId?: string;
   valueMgDl: number;
   context: ReadingContext;
   postMealOffset?: PostMealOffset;
   note?: string;
+  photos?: MealPhoto[];
   photoUrl?: string;
+  photoStorageId?: string;
   takenAt: number;
   createdAt: number;
   archivedAt?: number;
@@ -57,9 +65,31 @@ export type NewReading = {
   context: ReadingContext;
   postMealOffset?: PostMealOffset;
   note?: string;
+  photos?: MealPhoto[];
   photoUrl?: string;
+  photoStorageId?: string;
   takenAt: number;
 };
+
+export function nextReadingPhoto(
+  patch: Pick<NewReading, "photoUrl" | "photoStorageId" | "photos">,
+): Pick<Reading, "photoUrl" | "photoStorageId" | "photos"> {
+  if (patch.photos !== undefined) {
+    const first = patch.photos[0];
+    return {
+      photos: patch.photos,
+      photoUrl: first?.url,
+      photoStorageId: first?.storageId,
+    };
+  }
+  if (patch.photoStorageId !== undefined) {
+    return { photoStorageId: patch.photoStorageId, photoUrl: undefined };
+  }
+  if (patch.photoUrl !== undefined) {
+    return { photoUrl: patch.photoUrl };
+  }
+  return { photoUrl: undefined, photoStorageId: undefined, photos: [] };
+}
 
 export type AppSettings = {
   diabetesType: DiabetesType;

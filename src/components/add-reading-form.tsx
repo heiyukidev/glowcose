@@ -1,10 +1,16 @@
 "use client";
 
-import { Camera, Check } from "lucide-react";
+import { Camera, Check, Images } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import { toast } from "sonner";
-import { get, map } from "lodash";
+import { filter, get, map, size, take } from "lodash";
 
 import { Chip } from "@/components/chip";
 import { useReadings } from "@/components/readings-provider";
@@ -37,6 +43,12 @@ import {
   type Reading,
   type ReadingContext,
 } from "@/lib/glucose";
+import {
+  MAX_MEAL_PHOTOS,
+  formMealKey,
+  mealMediaForForm,
+  photosFromLegacy,
+} from "@/lib/meal";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -48,7 +60,7 @@ const TONE_SURFACE: Record<string, string> = {
   hypo: "bg-[var(--status-low)]/10 ring-[var(--status-low)]/40",
 };
 
-async function fileToStubDataUrl(file: File): Promise<string> {
+async function fileToJpegBlob(file: File): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
   const maxWidth = 480;
   const scale = Math.min(1, maxWidth / bitmap.width);
@@ -60,31 +72,107 @@ async function fileToStubDataUrl(file: File): Promise<string> {
     throw new Error("Canvas indisponible");
   }
   ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL("image/jpeg", 0.62);
+  return await new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error("Canvas indisponible"));
+          return;
+        }
+        resolve(blob);
+      },
+      "image/jpeg",
+      0.62,
+    );
+  });
 }
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error("Lecture impossible"));
+    };
+    reader.onerror = () => reject(new Error("Lecture impossible"));
+    reader.readAsDataURL(blob);
+  });
+}
+
+function clientFlagSubscribe() {
+  return () => {};
+}
+
+type FormPhoto = {
+  url: string;
+  blob?: Blob;
+  storageId?: string;
+};
 
 export function AddReadingForm({ initial }: { initial?: Reading }) {
   const router = useRouter();
-  const { addReading, updateReading, archiveReading } = useReadings();
+  const { addReading, updateReading, archiveReading, uploadPhoto, readings } =
+    useReadings();
   const { settings, setUnit } = useSettings();
   const now = useMemo(() => new Date(), []);
+  const defaultTakenAt = initial?.takenAt ?? now.getTime();
+  const defaultContext = initial?.context ?? defaultContextForTime(now);
   const [rawValue, setRawValue] = useState(() =>
     initial ? formatInputValue(initial.valueMgDl, settings.unit) : "",
   );
-  const [context, setContext] = useState<ReadingContext>(
-    () => initial?.context ?? defaultContextForTime(now),
-  );
+  const [context, setContext] = useState<ReadingContext>(defaultContext);
   const [postMealOffset, setPostMealOffset] = useState<PostMealOffset>(
     () => initial?.postMealOffset ?? 2,
   );
   const [takenAt, setTakenAt] = useState(() =>
-    toDatetimeLocalValue(initial?.takenAt ?? now.getTime()),
+    toDatetimeLocalValue(defaultTakenAt),
   );
-  const [note, setNote] = useState(initial?.note ?? "");
-  const [photoUrl, setPhotoUrl] = useState<string | undefined>(
-    initial?.photoUrl,
+  const openingMedia = initial
+    ? {
+        note: initial.note ?? "",
+        photos: photosFromLegacy(initial),
+      }
+    : mealMediaForForm(readings, defaultContext, defaultTakenAt);
+  const [note, setNote] = useState(openingMedia.note ?? "");
+  const [photos, setPhotos] = useState<FormPhoto[]>(() =>
+    map(openingMedia.photos, (photo) => ({
+      url: photo.url ?? "",
+      storageId: photo.storageId,
+    })),
   );
   const [saving, setSaving] = useState(false);
+  const takenAtMs = fromDatetimeLocalValue(takenAt);
+  const mealKey = formMealKey(readings, context, takenAtMs, initial);
+  const [attachedMealKey, setAttachedMealKey] = useState(mealKey);
+  const isClient = useSyncExternalStore(
+    clientFlagSubscribe,
+    () => true,
+    () => false,
+  );
+  if (isClient && attachedMealKey !== mealKey) {
+    setAttachedMealKey(mealKey);
+    if (context === "other" && initial?.context === "other") {
+      setNote(initial.note ?? "");
+      setPhotos(
+        map(photosFromLegacy(initial), (photo) => ({
+          url: photo.url ?? "",
+          storageId: photo.storageId,
+        })),
+      );
+    } else {
+      const media = mealMediaForForm(readings, context, takenAtMs);
+      setNote(media.note ?? "");
+      setPhotos(
+        map(media.photos, (photo) => ({
+          url: photo.url ?? "",
+          storageId: photo.storageId,
+        })),
+      );
+    }
+  }
 
   const parsedMgDl = parseGlucoseInput(rawValue, settings.unit);
   const offset = isAfterContext(context) ? postMealOffset : undefined;
@@ -94,14 +182,35 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
       : readingStatus(parsedMgDl, context, offset, settings.thresholds);
   const band = thresholdsForContext(context, offset, settings.thresholds);
 
-  async function onPhoto(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  async function addPhotoFiles(fileList: FileList | null) {
+    if (!fileList) return;
+    const remaining = MAX_MEAL_PHOTOS - size(photos);
+    const selected = take([...fileList], remaining);
     try {
-      setPhotoUrl(await fileToStubDataUrl(file));
+      const next = await Promise.all(
+        map(selected, async (file) => {
+          const blob = await fileToJpegBlob(file);
+          return { url: URL.createObjectURL(blob), blob };
+        }),
+      );
+      setPhotos((current) => [...current, ...next]);
     } catch {
       toast.error("Impossible de lire cette photo.");
     }
+  }
+
+  async function onPhoto(
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const files = event.target.files;
+    event.target.value = "";
+    await addPhotoFiles(files);
+  }
+
+  function onClearPhoto(index: number) {
+    setPhotos((current) =>
+      filter(current, (_photo, photoIndex) => photoIndex !== index),
+    );
   }
 
   async function onSubmit(event: FormEvent) {
@@ -111,15 +220,30 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
       return;
     }
     setSaving(true);
-    const payload = {
-      valueMgDl: parsedMgDl,
-      context,
-      postMealOffset: effectiveOffset(context, postMealOffset),
-      note: note.trim() || undefined,
-      photoUrl,
-      takenAt: fromDatetimeLocalValue(takenAt),
-    };
     try {
+      const nextPhotos = await Promise.all(
+        map(photos, async (photo) => {
+          if (photo.blob) {
+            if (uploadPhoto) {
+              const storageId = await uploadPhoto(photo.blob);
+              return { storageId };
+            }
+            return { url: await blobToDataUrl(photo.blob) };
+          }
+          return {
+            ...(photo.storageId ? { storageId: photo.storageId } : {}),
+            ...(photo.url ? { url: photo.url } : {}),
+          };
+        }),
+      );
+      const payload = {
+        valueMgDl: parsedMgDl,
+        context,
+        postMealOffset: effectiveOffset(context, postMealOffset),
+        note: note.trim() || undefined,
+        takenAt: fromDatetimeLocalValue(takenAt),
+        photos: nextPhotos,
+      };
       if (initial) {
         await updateReading(initial._id, payload);
         toast.success("Mesure mise à jour");
@@ -228,37 +352,61 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
           id="note"
           value={note}
           onChange={(event) => setNote(event.target.value)}
-          placeholder="Repas, marche, stress…"
+          placeholder="Ce qui a été mangé…"
           className="min-h-20"
         />
       </section>
 
       <section className="space-y-2">
-        <p className="text-sm font-medium">Photo du repas</p>
-        <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground hover:bg-muted/60">
-          {photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={photoUrl}
-              alt="Aperçu du repas"
-              className="h-28 w-full rounded-xl object-cover"
-            />
-          ) : (
-            <Camera className="size-5" />
-          )}
-          <span>
-            {photoUrl
-              ? "Photo ajoutée (stockage local, stub)"
-              : "Ajouter une photo — stub local, R2 plus tard"}
-          </span>
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="sr-only"
-            onChange={onPhoto}
-          />
-        </label>
+        <p className="text-sm font-medium">Photos du repas</p>
+        {size(photos) > 0 ? (
+          <div className="grid grid-cols-2 gap-2">
+            {map(photos, (photo, index) => (
+              <div key={`${photo.url}-${index}`} className="space-y-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={photo.url}
+                  alt={`Photo du repas ${index + 1}`}
+                  className="h-28 w-full rounded-xl object-cover"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full text-muted-foreground"
+                  onClick={() => onClearPhoto(index)}
+                >
+                  Retirer
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {size(photos) < MAX_MEAL_PHOTOS ? (
+          <div className="grid grid-cols-2 gap-2">
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground hover:bg-muted/60">
+              <Camera className="size-5" />
+              <span>Appareil photo</span>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="sr-only"
+                onChange={onPhoto}
+              />
+            </label>
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground hover:bg-muted/60">
+              <Images className="size-5" />
+              <span>Galerie</span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="sr-only"
+                onChange={onPhoto}
+              />
+            </label>
+          </div>
+        ) : null}
       </section>
 
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 p-4 backdrop-blur">
