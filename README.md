@@ -53,7 +53,7 @@ Sans `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` ni `EXPO_PUBLIC_CONVEX_URL` : mêmes me
 
 Boucle v0.2 : onboarding (type de diabète) → Aujourd’hui → Ajouter (couleurs) → Historique → Graphique (7j / 30j) → Réglages (unités + seuils).
 
-Photo repas : `expo-image-picker`, URI locale (stub). Pas de R2 pour l’instant.
+Photo repas : `expo-image-picker`. Connecté : Convex File Storage. Sans auth : URI locale sur l’appareil.
 
 ### TestFlight (iOS)
 
@@ -72,6 +72,18 @@ eas submit --platform ios --profile production
 ```
 
 `eas init` écrit `extra.eas.projectId` dans `mobile/app.json` — à committer. Ne pas inventer d’IDs Apple. Pour le CI, une **clé API App Store Connect** (via `eas credentials`) est préférable à un Apple ID + 2FA.
+
+### Mises à jour OTA (EAS Update)
+
+Les changements JS / styles / assets partent avec `eas update` sur le `runtimeVersion` de l’app (`appVersion`, aujourd’hui `0.2.0`). Un changement natif (module, permission, SDK) exige un **nouveau binaire** TestFlight / store. Les builds déjà en TestFlight **sans** `expo-updates` ne reçoivent pas les OTA : il faut d’abord un nouveau `eas build`.
+
+```sh
+cd mobile
+eas update --channel preview --environment preview --message "description courte"
+eas update --channel production --environment production --message "description courte"
+```
+
+Détail : [`mobile/README.md`](mobile/README.md#mises-à-jour-ota-eas-update).
 
 ### Identifiants de continuité
 

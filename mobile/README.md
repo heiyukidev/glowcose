@@ -135,8 +135,36 @@ Après création de l’app ASC, vous pouvez renseigner
 `submit.production.ios.ascAppId` (l’identifiant Apple numérique dans App Store
 Connect, **pas** le bundle ID). Laissez-le vide jusque-là : la CLI le demandera.
 
+## Mises à jour OTA (EAS Update)
+
+Le JS, les styles et les assets embarqués partent avec [EAS Update](https://docs.expo.dev/eas-update/introduction/) sans repasser par l’App Store, tant que le **runtime natif** est le même (`runtimeVersion` = version d’app, aujourd’hui `0.2.0`).
+
+Un OTA **ne peut pas** ajouter un module natif, une permission, un splash ou un bump de SDK Expo : dans ce cas, nouveau `eas build` + `eas submit`.
+
+Les profils EAS portent déjà un `channel` du même nom (`development`, `preview`, `production`). L’app vérifie une mise à jour au lancement, télécharge en arrière-plan, et l’applique au redémarrage suivant (fermer complètement l’app, puis la rouvrir, jusqu’à deux fois).
+
+### Publier une mise à jour
+
+Il faut un **binaire** preview ou production **construit après** l’ajout de `expo-updates`. Les TestFlight existants ne se mettront pas à jour tout seuls.
+
+```sh
+cd mobile
+eas update --channel preview --environment preview --message "description courte"
+# ou : npm run eas:update:preview -- --message "description courte"
+```
+
+Production, seulement une fois le binaire de production OTA-capable installé :
+
+```sh
+eas update --channel production --environment production --message "description courte"
+# ou : npm run eas:update:production -- --message "description courte"
+```
+
+`--environment` est obligatoire (SDK 57) : il injecte les `EXPO_PUBLIC_*` **du projet EAS**, pas le `.env` local. `preview` / `development` correspondent au Clerk de test et au Convex Gluciel. L’environnement **production** du compte Expo mélange aussi des variables **account-wide** Kristine (`EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, `EXPO_PUBLIC_CONVEX_URL`) : vérifier sur le dashboard EAS laquelle gagne avant le premier OTA production, ou délier les variables partagées Kristine de ces noms.
+
 ### Ce que ce dépôt ne fait pas à votre place
 
 - Il n’envoie pas un build à TestFlight tout seul.
+- Il ne publie pas un OTA tout seul.
 - Il ne contient ni identifiant d’équipe Apple ni secret.
 - Une connexion Expo seule ne peut pas envoyer un build vers TestFlight.
