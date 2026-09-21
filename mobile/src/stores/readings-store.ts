@@ -81,8 +81,16 @@ export function subscribeLocalStore(listener: () => void) {
   };
 }
 
+let presentedFor: LocalLog | null = null;
+let presentedReadings: Reading[] = EMPTY_READINGS;
+
 export function getLocalSnapshot(): Reading[] {
-  return cachedLog ? presentLocalLog(cachedLog) : EMPTY_READINGS;
+  if (!cachedLog) return EMPTY_READINGS;
+  if (presentedFor !== cachedLog) {
+    presentedFor = cachedLog;
+    presentedReadings = presentLocalLog(cachedLog);
+  }
+  return presentedReadings;
 }
 
 export function getLocalServerSnapshot(): Reading[] {

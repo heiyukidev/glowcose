@@ -2,8 +2,8 @@
 
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { filter, map, orderBy, size } from "lodash";
-import { useState } from "react";
+import { compact, filter, groupBy, keys, map, orderBy, size, sortBy } from "lodash";
+import { useCallback, useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -23,7 +23,6 @@ import {
   contextLabel,
   convertFromMgDl,
   readingStatus,
-  type GlucoseUnit,
   type Reading,
   type ReadingStatus,
 } from "@/lib/glucose";
@@ -32,21 +31,36 @@ type ChartPoint = {
   id: string;
   at: number;
   value: number;
-  label: string;
   status: ReadingStatus;
   context: string;
   mgDl: number;
 };
 
+function dayTicks(points: ChartPoint[]): number[] {
+  const pointsByDay = groupBy(points, (point) => format(point.at, "yyyy-MM-dd"));
+  return compact(
+    map(sortBy(keys(pointsByDay)), (day) => pointsByDay[day]?.[0]?.at),
+  );
+}
+
+const TIME_DOMAIN: ["dataMin", "dataMax"] = ["dataMin", "dataMax"];
+const AXIS_TICK = { fontSize: 11, fill: "var(--muted-foreground)" };
+const CHART_MARGIN = { top: 8, right: 8, left: -12, bottom: 0 };
+const AREA_DOT = { r: 3, strokeWidth: 0, fill: "var(--primary)" };
+const ACTIVE_DOT = { r: 5 };
+
+function formatDayTick(value: number): string {
+  return format(value, "EEE d", { locale: fr });
+}
+
 function TooltipContent({
   active,
   payload,
-  unit,
 }: {
   active?: boolean;
   payload?: Array<{ payload: ChartPoint }>;
-  unit: GlucoseUnit;
 }) {
+  const { settings } = useSettings();
   if (!active || !payload?.[0]) return null;
   const point = payload[0].payload;
   return (
@@ -56,7 +70,7 @@ function TooltipContent({
       </p>
       <p className="mt-1 flex items-center gap-1.5">
         <StatusDot status={point.status} />
-        {formatPrimary(point.mgDl, unit)}
+        {formatPrimary(point.mgDl, settings.unit)}
       </p>
       <p className="text-muted-foreground">{point.context}</p>
     </div>
@@ -72,26 +86,35 @@ export function GlucoseChart({
 }) {
   const { settings } = useSettings();
   const [now] = useState(() => Date.now());
-  const cutoff = now - rangeDays * 24 * 60 * 60 * 1000;
-  const inRange = filter(readings, (reading) => reading.takenAt >= cutoff);
-  const points = map(orderBy(inRange, ["takenAt"], ["asc"]), (reading) => ({
-    id: reading._id,
-    at: reading.takenAt,
-    mgDl: reading.valueMgDl,
-    value: Number(
-      convertFromMgDl(reading.valueMgDl, settings.unit).toFixed(
-        settings.unit === "mgdl" ? 0 : 2,
+  const points = useMemo(() => {
+    const cutoff = now - rangeDays * 24 * 60 * 60 * 1000;
+    const inRange = filter(readings, (reading) => reading.takenAt >= cutoff);
+    return map(orderBy(inRange, ["takenAt"], ["asc"]), (reading) => ({
+      id: reading._id,
+      at: reading.takenAt,
+      mgDl: reading.valueMgDl,
+      value: Number(
+        convertFromMgDl(reading.valueMgDl, settings.unit).toFixed(
+          settings.unit === "mgdl" ? 0 : 2,
+        ),
       ),
-    ),
-    label: format(reading.takenAt, "EEE d", { locale: fr }),
-    status: readingStatus(
-      reading.valueMgDl,
-      reading.context,
-      reading.postMealOffset,
-      settings.thresholds,
-    ),
-    context: contextLabel(reading.context, reading.postMealOffset),
-  }));
+      status: readingStatus(
+        reading.valueMgDl,
+        reading.context,
+        reading.postMealOffset,
+        settings.thresholds,
+      ),
+      context: contextLabel(reading.context, reading.postMealOffset),
+    }));
+  }, [now, rangeDays, readings, settings]);
+  const ticks = useMemo(() => dayTicks(points), [points]);
+  const formatValueTick = useCallback(
+    (value: number) =>
+      settings.unit === "mgdl"
+        ? String(Math.round(value))
+        : value.toFixed(1).replace(".", ","),
+    [settings.unit],
+  );
 
   if (size(points) === 0) {
     return (
@@ -113,7 +136,7 @@ export function GlucoseChart({
   return (
     <div className="h-56 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={points} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+        <AreaChart data={points} margin={CHART_MARGIN}>
           <defs>
             <linearGradient id="glucielFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.28} />
@@ -122,34 +145,23 @@ export function GlucoseChart({
           </defs>
           <CartesianGrid strokeDasharray="3 6" vertical={false} stroke="var(--border)" />
           <XAxis
-            dataKey="label"
-            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+            dataKey="at"
+            type="number"
+            domain={TIME_DOMAIN}
+            ticks={ticks}
+            tickFormatter={formatDayTick}
+            tick={AXIS_TICK}
             tickLine={false}
             axisLine={false}
-            interval="preserveStartEnd"
+            minTickGap={28}
           />
           <YAxis
-            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+            tick={AXIS_TICK}
             tickLine={false}
             axisLine={false}
-            tickFormatter={(value: number) =>
-              settings.unit === "mgdl"
-                ? String(Math.round(value))
-                : value.toFixed(1).replace(".", ",")
-            }
+            tickFormatter={formatValueTick}
           />
-          <Tooltip
-            content={(props) => (
-              <TooltipContent
-                active={props.active}
-                payload={
-                  (props.payload as unknown as Array<{ payload: ChartPoint }>) ??
-                  undefined
-                }
-                unit={settings.unit}
-              />
-            )}
-          />
+          <Tooltip content={TooltipContent} />
           <ReferenceLine
             y={greenLine}
             stroke="var(--status-in)"
@@ -168,8 +180,8 @@ export function GlucoseChart({
             stroke="var(--primary)"
             strokeWidth={2.4}
             fill="url(#glucielFill)"
-            dot={{ r: 3, strokeWidth: 0, fill: "var(--primary)" }}
-            activeDot={{ r: 5 }}
+            dot={AREA_DOT}
+            activeDot={ACTIVE_DOT}
           />
         </AreaChart>
       </ResponsiveContainer>
