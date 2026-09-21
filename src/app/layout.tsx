@@ -28,6 +28,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html
       lang="fr"
       className={`${outfit.variable} ${fraunces.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
         <AppProviders>

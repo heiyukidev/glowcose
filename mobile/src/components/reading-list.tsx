@@ -1,6 +1,6 @@
 import { format } from "date-fns";
-import { filter, get, groupBy, keys, map, orderBy, size } from "lodash";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { compact, filter, get, groupBy, keys, map, orderBy, size } from "lodash";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import {
@@ -9,6 +9,7 @@ import {
   formatPrimary,
   formatSecondary,
   formatTime,
+  groupReadingsByMeal,
   readingStatus,
   type Reading,
 } from "@glowcose/core";
@@ -28,10 +29,12 @@ export function ReadingsList({
   readings,
   emptyTitle,
   emptyBody,
+  byMeal = false,
 }: {
   readings: Reading[];
   emptyTitle: string;
   emptyBody: string;
+  byMeal?: boolean;
 }) {
   const router = useRouter();
   const { settings } = useSettings();
@@ -43,6 +46,10 @@ export function ReadingsList({
         <Text style={styles.emptyBody}>{emptyBody}</Text>
       </View>
     );
+  }
+
+  if (byMeal) {
+    return <MealSections readings={readings} />;
   }
 
   const grouped = groupBy(readings, (reading) =>
@@ -109,6 +116,76 @@ export function ReadingsList({
   );
 }
 
+function MealSections({ readings }: { readings: Reading[] }) {
+  const router = useRouter();
+  const { settings } = useSettings();
+  const sections = groupReadingsByMeal(readings);
+
+  return (
+    <View style={styles.stack}>
+      {map(sections, (section) => {
+        const urls = compact(map(section.photos, (photo) => photo.url));
+        return (
+          <View key={section.id} style={styles.dayBlock}>
+            <Text style={styles.mealHeading}>{section.label}</Text>
+            {section.note ? (
+              <Text style={styles.mealNote}>{section.note}</Text>
+            ) : null}
+            {size(urls) > 0 ? (
+              <View style={styles.photos}>
+                {map(urls, (url) => (
+                  <Image
+                    key={url}
+                    source={{ uri: url }}
+                    style={styles.photo}
+                    accessibilityLabel={`Photo du ${section.label}`}
+                  />
+                ))}
+              </View>
+            ) : null}
+            <View style={styles.card}>
+              {map(section.readings, (reading) => {
+                const status = readingStatus(
+                  reading.valueMgDl,
+                  reading.context,
+                  reading.postMealOffset,
+                  settings.thresholds,
+                );
+                return (
+                  <Pressable
+                    key={reading._id}
+                    onPress={() => router.push(`/mesure/${reading._id}`)}
+                    style={styles.row}
+                  >
+                    <StatusDot status={status} />
+                    <View style={styles.rowMain}>
+                      <Text style={styles.time}>
+                        {formatTime(reading.takenAt)}
+                      </Text>
+                      <Text style={styles.context}>
+                        {contextLabel(reading.context, reading.postMealOffset)}
+                      </Text>
+                    </View>
+                    <View style={styles.values}>
+                      <Text style={styles.primary}>
+                        {formatPrimary(reading.valueMgDl, settings.unit)}
+                      </Text>
+                      <Text style={styles.secondary}>
+                        {formatSecondary(reading.valueMgDl, settings.unit)}
+                      </Text>
+                      <StatusBadge status={status} />
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   stack: {
     gap: 18,
@@ -122,6 +199,27 @@ const styles = StyleSheet.create({
     color: colors.muted,
     textTransform: "capitalize",
     paddingHorizontal: 4,
+  },
+  mealHeading: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.foreground,
+    paddingHorizontal: 4,
+  },
+  mealNote: {
+    fontSize: 13,
+    color: colors.muted,
+    paddingHorizontal: 4,
+  },
+  photos: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  photo: {
+    width: 64,
+    height: 64,
+    borderRadius: 10,
   },
   card: {
     backgroundColor: colors.card,
