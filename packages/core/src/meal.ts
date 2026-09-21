@@ -1,12 +1,16 @@
 import {
+  compact,
   concat,
   filter,
   find,
+  groupBy,
   includes,
   map,
   maxBy,
+  minBy,
   orderBy,
   reduce,
+  size,
   some,
   take,
   trim,
@@ -482,4 +486,81 @@ export function formMealKey(
   const match = findGroupedMeal(meals, slot, takenAt, context);
   if (match) return `meal:${match.id}`;
   return `new:${slot}:${localDateKey(takenAt)}`;
+}
+
+export const MEAL_SLOT_LABELS: Record<MealSlot, string> = {
+  breakfast: "Petit-déjeuner",
+  lunch: "Déjeuner",
+  dinner: "Dîner",
+  other: "Autre",
+};
+
+const MEAL_SLOT_RANK: Record<MealSlot, number> = {
+  breakfast: 0,
+  lunch: 1,
+  dinner: 2,
+  other: 3,
+};
+
+export type MealSection = {
+  id: string;
+  slot: MealSlot;
+  label: string;
+  note?: string;
+  photos: MealPhoto[];
+  readings: Reading[];
+};
+
+function readingPhase(reading: Reading): number {
+  if (!isAfterContext(reading.context)) return 0;
+  if (reading.postMealOffset === 1) return 2;
+  if (reading.postMealOffset === 2) return 3;
+  return 1;
+}
+
+function sectionNote(readings: Reading[]): string | undefined {
+  const withNote = find(readings, (item) => trim(item.note ?? "") !== "");
+  const text = trim(withNote?.note ?? "");
+  return text || undefined;
+}
+
+function sectionPhotos(readings: Reading[]): MealPhoto[] {
+  const withPhotos = find(
+    readings,
+    (item) => size(photosFromLegacy(item)) > 0,
+  );
+  return withPhotos ? photosFromLegacy(withPhotos) : [];
+}
+
+export function groupReadingsByMeal(readings: Reading[]): MealSection[] {
+  const live = filter(readings, (reading) => !reading.archivedAt);
+  const grouped = groupBy(
+    live,
+    (reading) => reading.mealId ?? `reading:${reading._id}`,
+  );
+  const sections = compact(
+    map(grouped, (items, id) => {
+      const ordered = orderBy(items, [readingPhase, "takenAt"], ["asc", "asc"]);
+      const head = ordered[0];
+      if (!head) return null;
+      const slot = mealSlotForContext(head.context);
+      const note = sectionNote(ordered);
+      return {
+        id,
+        slot,
+        label: MEAL_SLOT_LABELS[slot],
+        ...(note ? { note } : {}),
+        photos: sectionPhotos(ordered),
+        readings: ordered,
+      };
+    }),
+  );
+  return orderBy(
+    sections,
+    [
+      (section) => MEAL_SLOT_RANK[section.slot],
+      (section) => minBy(section.readings, "takenAt")?.takenAt ?? 0,
+    ],
+    ["asc", "asc"],
+  );
 }

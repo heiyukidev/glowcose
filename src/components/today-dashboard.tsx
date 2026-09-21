@@ -79,6 +79,7 @@ export function TodayDashboard() {
           </p>
           <ReadingsList
             readings={today}
+            byMeal
             emptyTitle={t("home.emptyTitle")}
             emptyBody={t("home.emptyBody")}
           />

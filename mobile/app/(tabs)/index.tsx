@@ -67,6 +67,7 @@ export default function TodayScreen() {
           </Text>
           <ReadingsList
             readings={today}
+            byMeal
             emptyTitle={t("home.emptyTitle")}
             emptyBody={t("home.emptyBody")}
           />
