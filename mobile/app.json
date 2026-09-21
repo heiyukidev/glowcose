@@ -77,6 +77,12 @@
         "projectId": "7e61edbc-a419-4de8-b3e5-abc06bdc374f"
       }
     },
-    "owner": "khaledromdhane"
+    "owner": "khaledromdhane",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/7e61edbc-a419-4de8-b3e5-abc06bdc374f"
+    }
   }
 }
