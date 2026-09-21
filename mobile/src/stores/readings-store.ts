@@ -1,18 +1,26 @@
-import { filter, find, map, size, startsWith } from "lodash";
+import { filter, find, startsWith } from "lodash";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
   LOCAL_USER_ID,
+  addReadingToLog,
+  archiveReadingInLog,
+  hydrateLocalLog,
+  presentLocalLog,
+  serializeLocalLog,
+  updateReadingInLog,
+  type LocalLog,
   type NewReading,
   type Reading,
 } from "@glowcose/core";
 
-const STORAGE_KEY = "glowcose.readings.v2";
+const STORAGE_KEY = "glowcose.readings.v3";
+const LEGACY_KEY = "glowcose.readings.v2";
 const listeners = new Set<() => void>();
 
 export const EMPTY_READINGS: Reading[] = [];
 
-let cached: Reading[] | null = null;
+let cachedLog: LocalLog | null = null;
 let hydrated = false;
 let hydratePromise: Promise<void> | null = null;
 
@@ -22,16 +30,14 @@ function emit() {
   }
 }
 
-function isSeededReading(reading: Reading): boolean {
+function isSeededReading(reading: { _id: string }): boolean {
   return startsWith(String(reading._id), "seed-");
 }
 
-function withoutSeedReadings(readings: Reading[]): Reading[] {
-  return filter(readings, (reading) => !isSeededReading(reading));
-}
-
-async function persist(readings: Reading[]): Promise<void> {
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(readings));
+async function persist(log: LocalLog): Promise<void> {
+  cachedLog = log;
+  await AsyncStorage.setItem(STORAGE_KEY, serializeLocalLog(log));
+  emit();
 }
 
 async function hydrate(): Promise<void> {
@@ -39,23 +45,24 @@ async function hydrate(): Promise<void> {
   if (hydratePromise) return hydratePromise;
   hydratePromise = (async () => {
     try {
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      const raw =
+        (await AsyncStorage.getItem(STORAGE_KEY)) ??
+        (await AsyncStorage.getItem(LEGACY_KEY));
       if (!raw) {
-        cached = [];
+        cachedLog = { meals: [], readings: [] };
       } else {
-        const parsed = JSON.parse(raw) as Reading[];
-        if (!Array.isArray(parsed)) {
-          cached = [];
-        } else {
-          const cleaned = withoutSeedReadings(parsed);
-          cached = cleaned;
-          if (size(cleaned) !== size(parsed)) {
-            await persist(cleaned);
-          }
-        }
+        const log = hydrateLocalLog(JSON.parse(raw), LOCAL_USER_ID);
+        cachedLog = {
+          meals: log.meals,
+          readings: filter(
+            log.readings,
+            (reading) => !isSeededReading(reading),
+          ),
+        };
+        await AsyncStorage.setItem(STORAGE_KEY, serializeLocalLog(cachedLog));
       }
     } catch {
-      cached = [];
+      cachedLog = { meals: [], readings: [] };
     } finally {
       hydrated = true;
       emit();
@@ -75,7 +82,7 @@ export function subscribeLocalStore(listener: () => void) {
 }
 
 export function getLocalSnapshot(): Reading[] {
-  return cached ?? EMPTY_READINGS;
+  return cachedLog ? presentLocalLog(cachedLog) : EMPTY_READINGS;
 }
 
 export function getLocalServerSnapshot(): Reading[] {
@@ -86,46 +93,46 @@ export function isLocalStoreHydrated(): boolean {
   return hydrated;
 }
 
-export function saveLocalReadings(readings: Reading[]): void {
-  cached = readings;
-  void persist(readings);
-  emit();
-}
-
 export function addLocalReading(input: NewReading): Reading {
-  const readings = getLocalSnapshot();
-  const reading: Reading = {
-    ...input,
-    _id: `local-${Date.now()}`,
+  const now = Date.now();
+  const readingId = `local-${now}`;
+  const log = addReadingToLog(cachedLog ?? { meals: [], readings: [] }, input, {
+    readingId,
+    mealId: `meal-${readingId}`,
     userId: LOCAL_USER_ID,
-    createdAt: Date.now(),
-  };
-  saveLocalReadings([reading, ...readings]);
-  return reading;
+    now,
+  });
+  void persist(log);
+  return (
+    find(presentLocalLog(log), (reading) => reading._id === readingId) ?? {
+      ...input,
+      _id: readingId,
+      userId: LOCAL_USER_ID,
+      createdAt: now,
+    }
+  );
 }
 
 export function updateLocalReading(
   id: string,
   patch: NewReading,
 ): Reading | null {
-  const readings = getLocalSnapshot();
-  const existing = find(readings, (reading) => reading._id === id);
-  if (!existing || existing.archivedAt) return null;
-  const updated: Reading = {
-    ...existing,
-    ...patch,
-  };
-  saveLocalReadings(
-    map(readings, (reading) => (reading._id === id ? updated : reading)),
+  const next = updateReadingInLog(
+    cachedLog ?? { meals: [], readings: [] },
+    id,
+    patch,
+    { mealId: `meal-${id}-${Date.now()}`, now: Date.now() },
   );
-  return updated;
+  void persist(next);
+  return find(presentLocalLog(next), (reading) => reading._id === id) ?? null;
 }
 
 export function archiveLocalReading(id: string): void {
-  const readings = getLocalSnapshot();
-  saveLocalReadings(
-    map(readings, (reading) =>
-      reading._id === id ? { ...reading, archivedAt: Date.now() } : reading,
+  void persist(
+    archiveReadingInLog(
+      cachedLog ?? { meals: [], readings: [] },
+      id,
+      Date.now(),
     ),
   );
 }

@@ -11,8 +11,8 @@ import {
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { addDays, addMinutes } from "date-fns";
-import { get, map } from "lodash";
-import { Camera } from "lucide-react-native";
+import { compact, filter, get, map, size, take } from "lodash";
+import { Camera, Images } from "lucide-react-native";
 
 import {
   CONTEXTS,
@@ -34,6 +34,10 @@ import {
   type PostMealOffset,
   type Reading,
   type ReadingContext,
+  MAX_MEAL_PHOTOS,
+  formMealKey,
+  mealMediaForForm,
+  photosFromLegacy,
 } from "@glowcose/core";
 import { Chip, Button } from "@/components/ui";
 import { StatusBadge } from "@/components/status-badge";
@@ -52,26 +56,57 @@ const TONE_BG = {
 
 export function AddReadingForm({ initial }: { initial?: Reading }) {
   const router = useRouter();
-  const { addReading, updateReading, archiveReading } = useReadings();
+  const { addReading, updateReading, archiveReading, uploadPhoto, readings } =
+    useReadings();
   const { settings, setUnit } = useSettings();
   const now = useMemo(() => new Date(), []);
+  const defaultTakenAt = initial?.takenAt ?? now.getTime();
+  const defaultContext = initial?.context ?? defaultContextForTime(now);
   const [rawValue, setRawValue] = useState(() =>
     initial ? formatInputValue(initial.valueMgDl, settings.unit) : "",
   );
-  const [context, setContext] = useState<ReadingContext>(
-    () => initial?.context ?? defaultContextForTime(now),
-  );
+  const [context, setContext] = useState<ReadingContext>(defaultContext);
   const [postMealOffset, setPostMealOffset] = useState<PostMealOffset>(
     () => initial?.postMealOffset ?? 2,
   );
-  const [takenAt, setTakenAt] = useState(
-    () => initial?.takenAt ?? now.getTime(),
-  );
-  const [note, setNote] = useState(initial?.note ?? "");
-  const [photoUrl, setPhotoUrl] = useState<string | undefined>(
-    initial?.photoUrl,
+  const [takenAt, setTakenAt] = useState(defaultTakenAt);
+  const openingMedia = initial
+    ? { note: initial.note ?? "", photos: photosFromLegacy(initial) }
+    : mealMediaForForm(readings, defaultContext, defaultTakenAt);
+  const [note, setNote] = useState(openingMedia.note ?? "");
+  const [photos, setPhotos] = useState(() =>
+    map(openingMedia.photos, (photo) => ({
+      url: photo.url ?? "",
+      storageId: photo.storageId,
+      localUri: photo.url,
+    })),
   );
   const [saving, setSaving] = useState(false);
+  const mealKey = formMealKey(readings, context, takenAt, initial);
+  const [attachedMealKey, setAttachedMealKey] = useState(mealKey);
+  if (attachedMealKey !== mealKey) {
+    setAttachedMealKey(mealKey);
+    if (context === "other" && initial?.context === "other") {
+      setNote(initial.note ?? "");
+      setPhotos(
+        map(photosFromLegacy(initial), (photo) => ({
+          url: photo.url ?? "",
+          storageId: photo.storageId,
+          localUri: photo.url,
+        })),
+      );
+    } else {
+      const media = mealMediaForForm(readings, context, takenAt);
+      setNote(media.note ?? "");
+      setPhotos(
+        map(media.photos, (photo) => ({
+          url: photo.url ?? "",
+          storageId: photo.storageId,
+          localUri: photo.url,
+        })),
+      );
+    }
+  }
 
   const parsedMgDl = parseGlucoseInput(rawValue, settings.unit);
   const offset = isAfterContext(context) ? postMealOffset : undefined;
@@ -81,22 +116,64 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
       : readingStatus(parsedMgDl, context, offset, settings.thresholds);
   const band = thresholdsForContext(context, offset, settings.thresholds);
 
-  async function onPhoto() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  async function appendAssets(
+    assets: { uri?: string }[] | undefined,
+  ) {
+    const remaining = MAX_MEAL_PHOTOS - size(photos);
+    const selected = take(assets ?? [], remaining);
+    const next = compact(
+      map(selected, (asset) =>
+        asset.uri
+          ? { url: asset.uri, localUri: asset.uri, storageId: undefined }
+          : undefined,
+      ),
+    );
+    setPhotos((current) => [...current, ...next]);
+  }
+
+  async function onCamera() {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
       Alert.alert(
         "Photo",
-        "Autorisez l’accès aux photos pour joindre un repas (stub local).",
+        "Autorisez l’appareil photo pour photographier un repas.",
       );
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
+    const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ["images"],
       quality: 0.6,
     });
     if (!result.canceled) {
-      setPhotoUrl(result.assets[0]?.uri);
+      await appendAssets(result.assets);
     }
+  }
+
+  async function onGallery() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(
+        "Photo",
+        "Autorisez l’accès aux photos pour joindre un repas.",
+      );
+      return;
+    }
+    const remaining = MAX_MEAL_PHOTOS - size(photos);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.6,
+      allowsMultipleSelection: true,
+      selectionLimit: remaining,
+    });
+    if (!result.canceled) {
+      await appendAssets(result.assets);
+    }
+  }
+
+  function onClearPhoto(index: number) {
+    setPhotos((current) =>
+      filter(current, (_photo, photoIndex) => photoIndex !== index),
+    );
   }
 
   async function onSubmit() {
@@ -105,15 +182,35 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
       return;
     }
     setSaving(true);
-    const payload = {
-      valueMgDl: parsedMgDl,
-      context,
-      postMealOffset: effectiveOffset(context, postMealOffset),
-      note: note.trim() || undefined,
-      photoUrl,
-      takenAt,
-    };
     try {
+      const nextPhotos = await Promise.all(
+        map(photos, async (photo) => {
+          if (photo.localUri && !photo.storageId) {
+            if (uploadPhoto) {
+              const response = await fetch(photo.localUri);
+              if (!response.ok) {
+                throw new Error("Photo unreadable");
+              }
+              const blob = await response.blob();
+              const storageId = await uploadPhoto(blob);
+              return { storageId };
+            }
+            return { url: photo.localUri };
+          }
+          return {
+            ...(photo.storageId ? { storageId: photo.storageId } : {}),
+            ...(photo.url ? { url: photo.url } : {}),
+          };
+        }),
+      );
+      const payload = {
+        valueMgDl: parsedMgDl,
+        context,
+        postMealOffset: effectiveOffset(context, postMealOffset),
+        note: note.trim() || undefined,
+        takenAt,
+        photos: nextPhotos,
+      };
       if (initial) {
         await updateReading(initial._id, payload);
       } else {
@@ -231,25 +328,37 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
       <TextInput
         value={note}
         onChangeText={setNote}
-        placeholder="Repas, marche, stress…"
+        placeholder="Ce qui a été mangé…"
         placeholderTextColor={colors.muted}
         multiline
         style={styles.note}
       />
 
-      <Text style={styles.section}>Photo du repas</Text>
-      <Pressable onPress={() => void onPhoto()} style={styles.photo}>
-        {photoUrl ? (
-          <Image source={{ uri: photoUrl }} style={styles.photoImage} />
-        ) : (
-          <Camera color={colors.muted} size={22} />
-        )}
-        <Text style={styles.hint}>
-          {photoUrl
-            ? "Photo ajoutée (stockage local, stub)"
-            : "Ajouter une photo — stub local, R2 plus tard"}
-        </Text>
-      </Pressable>
+      <Text style={styles.section}>Photos du repas</Text>
+      {map(photos, (photo, index) => (
+        <View key={`${photo.url}-${index}`} style={styles.photo}>
+          {photo.url ? (
+            <Image source={{ uri: photo.url }} style={styles.photoImage} />
+          ) : null}
+          <Button
+            title="Retirer"
+            variant="ghost"
+            onPress={() => onClearPhoto(index)}
+          />
+        </View>
+      ))}
+      {size(photos) < MAX_MEAL_PHOTOS ? (
+        <View style={styles.chips}>
+          <Pressable onPress={() => void onCamera()} style={styles.photoPick}>
+            <Camera color={colors.muted} size={22} />
+            <Text style={styles.hint}>Appareil photo</Text>
+          </Pressable>
+          <Pressable onPress={() => void onGallery()} style={styles.photoPick}>
+            <Images color={colors.muted} size={22} />
+            <Text style={styles.hint}>Galerie</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <Button
         title={saving ? "Enregistrement…" : "Enregistrer"}
@@ -364,5 +473,16 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 120,
     borderRadius: 12,
+  },
+  photoPick: {
+    flex: 1,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    borderRadius: 18,
+    padding: 16,
+    alignItems: "center",
+    gap: 8,
   },
 });

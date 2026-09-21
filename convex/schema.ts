@@ -13,6 +13,18 @@ export const readingContext = v.union(
 
 export const postMealOffset = v.union(v.literal(1), v.literal(2));
 
+export const mealSlot = v.union(
+  v.literal("breakfast"),
+  v.literal("lunch"),
+  v.literal("dinner"),
+  v.literal("other"),
+);
+
+export const mealPhoto = v.object({
+  storageId: v.optional(v.id("_storage")),
+  url: v.optional(v.string()),
+});
+
 export const diabetesType = v.union(
   v.literal("gestational"),
   v.literal("type1"),
@@ -62,15 +74,30 @@ export default defineSchema({
     .index("by_code", ["code"])
     .index("by_carnet", ["carnetId"]),
 
+  meals: defineTable({
+    userId: v.string(),
+    carnetId: v.id("carnets"),
+    slot: mealSlot,
+    anchorAt: v.number(),
+    note: v.optional(v.string()),
+    photos: v.array(mealPhoto),
+    createdAt: v.number(),
+    archivedAt: v.optional(v.number()),
+  })
+    .index("by_carnet", ["carnetId"])
+    .index("by_carnet_and_slot", ["carnetId", "slot"]),
+
   readings: defineTable({
     userId: v.string(),
     carnetId: v.optional(v.id("carnets")),
     recordedBy: v.optional(v.string()),
+    mealId: v.optional(v.id("meals")),
     valueMgDl: v.number(),
     context: readingContext,
     postMealOffset: v.optional(postMealOffset),
     note: v.optional(v.string()),
     photoUrl: v.optional(v.string()),
+    photoStorageId: v.optional(v.id("_storage")),
     takenAt: v.number(),
     createdAt: v.number(),
     archivedAt: v.optional(v.number()),
@@ -78,5 +105,6 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_takenAt", ["userId", "takenAt"])
     .index("by_carnet", ["carnetId"])
-    .index("by_carnet_takenAt", ["carnetId", "takenAt"]),
+    .index("by_carnet_takenAt", ["carnetId", "takenAt"])
+    .index("by_meal", ["mealId"]),
 });

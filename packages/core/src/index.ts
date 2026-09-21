@@ -1,5 +1,6 @@
 export * from "./constants";
 export * from "./glucose";
+export * from "./meal";
 export * from "./csv-import";
 export * from "./carnet";
 export * from "./format";
