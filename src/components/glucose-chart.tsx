@@ -13,6 +13,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  type TooltipContentProps,
 } from "recharts";
 
 import { StatusDot } from "@/components/status-badge";
@@ -53,16 +54,20 @@ function formatDayTick(value: number): string {
   return format(value, "EEE d", { locale: fr });
 }
 
-function TooltipContent({
-  active,
-  payload,
-}: {
-  active?: boolean;
-  payload?: Array<{ payload: ChartPoint }>;
-}) {
+function isChartPoint(value: unknown): value is ChartPoint {
+  if (typeof value !== "object" || value === null) return false;
+  return (
+    "at" in value &&
+    "mgDl" in value &&
+    "status" in value &&
+    "context" in value
+  );
+}
+
+function TooltipContent({ active, payload }: TooltipContentProps) {
   const { settings } = useSettings();
-  if (!active || !payload?.[0]) return null;
-  const point = payload[0].payload;
+  const point = payload?.[0]?.payload;
+  if (!active || !isChartPoint(point)) return null;
   return (
     <div className="rounded-xl border border-border bg-card px-3 py-2 text-xs shadow-md">
       <p className="font-medium text-foreground">
