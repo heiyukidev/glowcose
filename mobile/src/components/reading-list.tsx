@@ -1,5 +1,15 @@
 import { format } from "date-fns";
-import { compact, filter, get, groupBy, keys, map, orderBy, size } from "lodash";
+import {
+  compact,
+  filter,
+  get,
+  groupBy,
+  keys,
+  last,
+  map,
+  orderBy,
+  size,
+} from "lodash";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
@@ -10,6 +20,7 @@ import {
   formatSecondary,
   formatTime,
   groupReadingsByMeal,
+  momentLabel,
   readingStatus,
   type Reading,
 } from "@glowcose/core";
@@ -125,60 +136,64 @@ function MealSections({ readings }: { readings: Reading[] }) {
     <View style={styles.stack}>
       {map(sections, (section) => {
         const urls = compact(map(section.photos, (photo) => photo.url));
+        const lastId = last(section.readings)?._id;
         return (
-          <View key={section.id} style={styles.dayBlock}>
-            <Text style={styles.mealHeading}>{section.label}</Text>
-            {section.note ? (
-              <Text style={styles.mealNote}>{section.note}</Text>
-            ) : null}
-            {size(urls) > 0 ? (
-              <View style={styles.photos}>
-                {map(urls, (url) => (
-                  <Image
-                    key={url}
-                    source={{ uri: url }}
-                    style={styles.photo}
-                    accessibilityLabel={`Photo du ${section.label}`}
-                  />
-                ))}
-              </View>
-            ) : null}
-            <View style={styles.card}>
-              {map(section.readings, (reading) => {
-                const status = readingStatus(
-                  reading.valueMgDl,
-                  reading.context,
-                  reading.postMealOffset,
-                  settings.thresholds,
-                );
-                return (
-                  <Pressable
-                    key={reading._id}
-                    onPress={() => router.push(`/mesure/${reading._id}`)}
-                    style={styles.row}
-                  >
-                    <StatusDot status={status} />
-                    <View style={styles.rowMain}>
-                      <Text style={styles.time}>
-                        {formatTime(reading.takenAt)}
-                      </Text>
-                      <Text style={styles.context}>
-                        {contextLabel(reading.context, reading.postMealOffset)}
-                      </Text>
-                    </View>
-                    <View style={styles.values}>
-                      <Text style={styles.primary}>
-                        {formatPrimary(reading.valueMgDl, settings.unit)}
-                      </Text>
-                      <Text style={styles.secondary}>
-                        {formatSecondary(reading.valueMgDl, settings.unit)}
-                      </Text>
-                      <StatusBadge status={status} />
-                    </View>
-                  </Pressable>
-                );
-              })}
+          <View key={section.id} style={styles.meal}>
+            <View style={styles.mealHead}>
+              <Text style={styles.mealTitle}>{section.label}</Text>
+              {section.note ? (
+                <Text style={styles.mealNote}>{section.note}</Text>
+              ) : null}
+              {size(urls) > 0 ? (
+                <View style={styles.photos}>
+                  {map(urls, (url) => (
+                    <Image
+                      key={url}
+                      source={{ uri: url }}
+                      style={styles.photo}
+                      accessibilityLabel={`Photo du ${section.label}`}
+                    />
+                  ))}
+                </View>
+              ) : null}
             </View>
+            {map(section.readings, (reading) => {
+              const status = readingStatus(
+                reading.valueMgDl,
+                reading.context,
+                reading.postMealOffset,
+                settings.thresholds,
+              );
+              return (
+                <Pressable
+                  key={reading._id}
+                  onPress={() => router.push(`/mesure/${reading._id}`)}
+                  style={[
+                    styles.row,
+                    reading._id === lastId ? styles.rowLast : null,
+                  ]}
+                >
+                  <StatusDot status={status} />
+                  <View style={styles.rowMain}>
+                    <Text style={styles.time}>
+                      {formatTime(reading.takenAt)}
+                    </Text>
+                    <Text style={styles.context}>
+                      {momentLabel(reading.context, reading.postMealOffset)}
+                    </Text>
+                  </View>
+                  <View style={styles.values}>
+                    <Text style={styles.primary}>
+                      {formatPrimary(reading.valueMgDl, settings.unit)}
+                    </Text>
+                    <Text style={styles.secondary}>
+                      {formatSecondary(reading.valueMgDl, settings.unit)}
+                    </Text>
+                    <StatusBadge status={status} />
+                  </View>
+                </Pressable>
+              );
+            })}
           </View>
         );
       })}
@@ -188,7 +203,7 @@ function MealSections({ readings }: { readings: Reading[] }) {
 
 const styles = StyleSheet.create({
   stack: {
-    gap: 18,
+    gap: 22,
   },
   dayBlock: {
     gap: 8,
@@ -200,21 +215,34 @@ const styles = StyleSheet.create({
     textTransform: "capitalize",
     paddingHorizontal: 4,
   },
-  mealHeading: {
-    fontSize: 15,
+  meal: {
+    backgroundColor: colors.card,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: "hidden",
+  },
+  mealHead: {
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 12,
+    gap: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  mealTitle: {
+    fontSize: 17,
     fontWeight: "700",
     color: colors.foreground,
-    paddingHorizontal: 4,
   },
   mealNote: {
     fontSize: 13,
     color: colors.muted,
-    paddingHorizontal: 4,
   },
   photos: {
     flexDirection: "row",
     gap: 8,
-    paddingHorizontal: 4,
+    marginTop: 8,
   },
   photo: {
     width: 64,
@@ -236,6 +264,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
     alignItems: "flex-start",
+  },
+  rowLast: {
+    borderBottomWidth: 0,
   },
   rowMain: {
     flex: 1,

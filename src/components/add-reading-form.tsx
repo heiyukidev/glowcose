@@ -182,8 +182,8 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
       : readingStatus(parsedMgDl, context, offset, settings.thresholds);
   const band = thresholdsForContext(context, offset, settings.thresholds);
 
-  async function addPhotoFiles(fileList: FileList | null) {
-    if (!fileList) return;
+  async function addPhotoFiles(fileList: FileList | File[] | null) {
+    if (!fileList || fileList.length === 0) return;
     const remaining = MAX_MEAL_PHOTOS - size(photos);
     const selected = take([...fileList], remaining);
     try {
@@ -202,7 +202,7 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
   async function onPhoto(
     event: ChangeEvent<HTMLInputElement>,
   ) {
-    const files = event.target.files;
+    const files = [...(event.target.files ?? [])];
     event.target.value = "";
     await addPhotoFiles(files);
   }
