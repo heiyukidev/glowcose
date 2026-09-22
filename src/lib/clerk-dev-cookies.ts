@@ -51,7 +51,7 @@ export function clerkIssuer(token: string): string | null {
   try {
     const pad = encoded.length % 4 === 0 ? "" : "=".repeat(4 - (encoded.length % 4));
     const json = atob(encoded.replace(/-/g, "+").replace(/_/g, "/") + pad);
-    const iss = get(JSON.parse(json) as object, "iss");
+    const iss = get(JSON.parse(json) as { iss?: unknown }, "iss");
     if (typeof iss !== "string") return null;
     return iss.replace(/^https?:\/\//, "").replace(/\/$/, "");
   } catch {

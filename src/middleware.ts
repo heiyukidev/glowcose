@@ -1,7 +1,7 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { getCookieSuffix, parsePublishableKey } from "@clerk/shared/keys";
 import { forEach } from "lodash";
-import { type NextFetchEvent, type NextMiddlewareResult, NextRequest, NextResponse } from "next/server";
+import { type NextFetchEvent, NextRequest, NextResponse } from "next/server";
 
 import { CLERK_HANDSHAKE_PARAMS, handshakeIsForeign, selectClerkCookies } from "@/lib/clerk-dev-cookies";
 
@@ -24,7 +24,7 @@ function requestWithoutCookies(request: NextRequest, cookieHeader: string): Next
   return new NextRequest(request.url, { headers, method: request.method });
 }
 
-export default async function middleware(request: NextRequest, event: NextFetchEvent): Promise<NextMiddlewareResult> {
+export default async function middleware(request: NextRequest, event: NextFetchEvent) {
   if (!clerk || !publishableKey) return NextResponse.next();
 
   const parsed = parsePublishableKey(publishableKey);
