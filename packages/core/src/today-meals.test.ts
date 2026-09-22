@@ -118,6 +118,36 @@ describe("groupReadingsByMeal", () => {
     ]);
   });
 
+  test("folds an after-reading stored on its own meal into that meal", () => {
+    const before = reading({
+      _id: "before",
+      mealId: "breakfast-before",
+      context: "before_breakfast",
+      takenAt: Date.parse("2026-09-21T09:13:00+02:00"),
+      valueMgDl: 91,
+    });
+    const after = reading({
+      _id: "after",
+      mealId: "breakfast-after",
+      context: "after_breakfast",
+      postMealOffset: 2,
+      takenAt: Date.parse("2026-09-21T11:44:00+02:00"),
+      valueMgDl: 97,
+    });
+    const lunch = reading({
+      _id: "lunch",
+      mealId: "lunch-1",
+      context: "before_lunch",
+      takenAt: Date.parse("2026-09-21T15:29:00+02:00"),
+      valueMgDl: 85,
+    });
+
+    const sections = groupReadingsByMeal([after, lunch, before]);
+
+    expect(map(sections, "label")).toEqual(["Petit-déjeuner", "Déjeuner"]);
+    expect(map(sections[0]?.readings, "_id")).toEqual(["before", "after"]);
+  });
+
   test("keeps a Reading with no Meal as its own section", () => {
     const orphan = reading({
       _id: "orphan",

@@ -244,6 +244,17 @@ export function contextLabel(
   return `${base} · ${hours}h`;
 }
 
+/** Moment inside a meal group. The meal name lives on the group, not the row. */
+export function momentLabel(
+  context: ReadingContext,
+  offset?: PostMealOffset,
+): string {
+  if (context === "other") return "Autre";
+  if (!isAfterContext(context)) return "Avant";
+  const hours = effectiveOffset(context, offset) ?? 2;
+  return `Après · ${hours}h`;
+}
+
 export function defaultContextForTime(date: Date): ReadingContext {
   const hour = date.getHours();
   if (hour < 8) return "before_breakfast";

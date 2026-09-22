@@ -1,8 +1,10 @@
 import {
   compact,
   concat,
+  every,
   filter,
   find,
+  findLast,
   groupBy,
   includes,
   map,
@@ -532,6 +534,60 @@ function sectionPhotos(readings: Reading[]): MealPhoto[] {
   return withPhotos ? photosFromLegacy(withPhotos) : [];
 }
 
+function sectionAnchor(section: MealSection): number {
+  return minBy(section.readings, "takenAt")?.takenAt ?? 0;
+}
+
+function isAfterOnly(section: MealSection): boolean {
+  return (
+    size(section.readings) > 0 &&
+    every(section.readings, (reading) => isAfterContext(reading.context))
+  );
+}
+
+/**
+ * A before and its after were sometimes stored as two meals, so the day
+ * showed "Petit-déjeuner" twice. Fold an after-only meal into the earlier
+ * meal of the same slot when it falls in that meal's window.
+ * A later meal that starts with "Avant" stays its own group, as does "Autre".
+ */
+function foldSplitAfterMeals(sections: MealSection[]): MealSection[] {
+  const ordered = orderBy(
+    sections,
+    [(section) => MEAL_SLOT_RANK[section.slot], sectionAnchor],
+    ["asc", "asc"],
+  );
+  return reduce(
+    ordered,
+    (acc, section) => {
+      if (section.slot === "other" || !isAfterOnly(section)) {
+        return concat(acc, [section]);
+      }
+      const anchorAt = sectionAnchor(section);
+      const host = findLast(acc, (existing) => {
+        if (existing.slot !== section.slot) return false;
+        const hostAt = sectionAnchor(existing);
+        return anchorAt >= hostAt && anchorAt - hostAt <= AFTER_MEAL_WINDOW_MS;
+      });
+      if (!host) return concat(acc, [section]);
+      const readings = orderBy(
+        concat(host.readings, section.readings),
+        [readingPhase, "takenAt"],
+        ["asc", "asc"],
+      );
+      const note = sectionNote(readings);
+      const next: MealSection = {
+        ...host,
+        ...(note ? { note } : {}),
+        photos: mergeMealPhotos(host.photos, section.photos),
+        readings,
+      };
+      return map(acc, (item) => (item.id === host.id ? next : item));
+    },
+    [] as MealSection[],
+  );
+}
+
 export function groupReadingsByMeal(readings: Reading[]): MealSection[] {
   const live = filter(readings, (reading) => !reading.archivedAt);
   const grouped = groupBy(
@@ -555,12 +611,5 @@ export function groupReadingsByMeal(readings: Reading[]): MealSection[] {
       };
     }),
   );
-  return orderBy(
-    sections,
-    [
-      (section) => MEAL_SLOT_RANK[section.slot],
-      (section) => minBy(section.readings, "takenAt")?.takenAt ?? 0,
-    ],
-    ["asc", "asc"],
-  );
+  return foldSplitAfterMeals(sections);
 }
