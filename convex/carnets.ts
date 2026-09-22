@@ -7,7 +7,11 @@ import {
   MAX_CARNET_MEMBERS,
   normalizeInviteCode,
 } from "../packages/core/src/carnet";
-import { THRESHOLD_PRESETS, type DiabetesType } from "../packages/core/src/glucose";
+import {
+  isOrderedPreset,
+  THRESHOLD_PRESETS,
+  type DiabetesType,
+} from "../packages/core/src/glucose";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
@@ -218,6 +222,9 @@ export const updateSettings = mutation({
       patch.diabetesType = args.diabetesType;
     }
     if (args.thresholds !== undefined) {
+      if (!isOrderedPreset(args.thresholds)) {
+        throw new Error("Seuils invalides");
+      }
       patch.thresholds = args.thresholds;
     }
     if (patch.diabetesType !== undefined || patch.thresholds !== undefined) {

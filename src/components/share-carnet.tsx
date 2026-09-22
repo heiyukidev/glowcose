@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import {
   carnetInviteWebUrl,
   formatInviteCode,
+  INVITE_CODE_LENGTH,
   MAX_CARNET_MEMBERS,
 } from "@/lib/carnet";
 import { t } from "@/lib/i18n";
@@ -30,6 +31,7 @@ export function ShareCarnet() {
   const invite = mine?.invite;
 
   async function handleCreate() {
+    if (busy) return;
     setBusy(true);
     try {
       await createInvite();
@@ -51,6 +53,7 @@ export function ShareCarnet() {
   }
 
   async function handleJoin() {
+    if (busy) return;
     setBusy(true);
     try {
       await joinWithCode(joinCode);
@@ -87,7 +90,7 @@ export function ShareCarnet() {
           </p>
           {invite ? (
             <div className="rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
-              <p className="font-display text-2xl tracking-[0.2em]">
+              <p className="font-display text-2xl tracking-[0.2em] break-all">
                 {formatInviteCode(invite.code)}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -130,13 +133,14 @@ export function ShareCarnet() {
                 <Input
                   autoCapitalize="characters"
                   autoCorrect="off"
-                  className="h-11 font-mono uppercase tracking-widest"
+                  maxLength={INVITE_CODE_LENGTH + 8}
+                  className="h-11 min-w-0 flex-1 font-mono uppercase tracking-widest"
                   placeholder={t("share.joinPlaceholder")}
                   value={joinCode}
                   onChange={(event) => setJoinCode(event.target.value)}
                 />
                 <Button
-                  className="h-11 rounded-2xl"
+                  className="h-11 shrink-0 rounded-2xl px-4"
                   disabled={busy || joinCode.trim() === ""}
                   onClick={() => void handleJoin()}
                 >

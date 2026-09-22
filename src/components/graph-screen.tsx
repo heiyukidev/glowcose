@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { AppHeader } from "@/components/app-header";
+import { LoadingStatus } from "@/components/loading-status";
 import { Chip } from "@/components/chip";
 import { Disclaimer } from "@/components/disclaimer";
 import { GlucoseChart } from "@/components/glucose-chart";
@@ -28,10 +29,10 @@ export function GraphScreen() {
       </h1>
       <div className="mb-4 flex gap-2">
         <Chip selected={rangeDays === 7} onClick={() => setRangeDays(7)}>
-          7 jours
+          {t("graph.days7")}
         </Chip>
         <Chip selected={rangeDays === 30} onClick={() => setRangeDays(30)}>
-          30 jours
+          {t("graph.days30")}
         </Chip>
       </div>
       <Card className="rounded-3xl">
@@ -45,7 +46,9 @@ export function GraphScreen() {
           {ready ? (
             <GlucoseChart readings={readings} rangeDays={rangeDays} />
           ) : (
-            <div className="h-56 animate-pulse rounded-2xl bg-muted" />
+            <LoadingStatus>
+              <div className="h-56 animate-pulse rounded-2xl bg-muted" />
+            </LoadingStatus>
           )}
         </CardContent>
       </Card>

@@ -1,9 +1,12 @@
-import { get, map } from "lodash";
+import { useEffect, useState } from "react";
+import { get, isEqual, map } from "lodash";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import {
+  bandFromDraft,
   DIABETES_TYPE_LABELS,
   DIABETES_TYPES,
+  t,
   type BandThresholds,
   type ThresholdPreset,
 } from "@glowcose/core";
@@ -23,6 +26,14 @@ const BAND_ROWS: Array<{ key: keyof ThresholdPreset; label: string }> = [
   { key: "other", label: "Autre / hors repas" },
 ];
 
+function draftsFromBand(band: BandThresholds) {
+  return {
+    hypoBelow: String(band.hypoBelow),
+    greenMax: String(band.greenMax),
+    orangeMax: String(band.orangeMax),
+  };
+}
+
 function BandFields({
   band,
   onChange,
@@ -30,41 +41,73 @@ function BandFields({
   band: BandThresholds;
   onChange: (next: BandThresholds) => void;
 }) {
+  const [draft, setDraft] = useState(() => draftsFromBand(band));
+  const [invalid, setInvalid] = useState(false);
+
+  useEffect(() => {
+    setDraft(draftsFromBand(band));
+    setInvalid(false);
+  }, [band]);
+
+  function commit() {
+    const next = bandFromDraft(draft);
+    if (!next) {
+      setInvalid(true);
+      setDraft(draftsFromBand(band));
+      return;
+    }
+    setInvalid(false);
+    if (!isEqual(next, band)) onChange(next);
+  }
+
   return (
-    <View style={styles.bandGrid}>
-      <View style={styles.bandCol}>
-        <Text style={styles.bandLabel}>Hypo &lt;</Text>
-        <TextInput
-          keyboardType="numeric"
-          value={String(band.hypoBelow)}
-          onChangeText={(value) =>
-            onChange({ ...band, hypoBelow: Number(value) || 0 })
-          }
-          style={styles.input}
-        />
+    <View>
+      <View style={styles.bandGrid}>
+        <View style={styles.bandCol}>
+          <Text style={styles.bandLabel}>Hypo &lt;</Text>
+          <TextInput
+            keyboardType="numeric"
+            maxLength={3}
+            value={draft.hypoBelow}
+            onChangeText={(value) =>
+              setDraft((current) => ({ ...current, hypoBelow: value }))
+            }
+            onBlur={commit}
+            style={styles.input}
+          />
+        </View>
+        <View style={styles.bandCol}>
+          <Text style={styles.bandLabel}>Vert ≤</Text>
+          <TextInput
+            keyboardType="numeric"
+            maxLength={3}
+            value={draft.greenMax}
+            onChangeText={(value) =>
+              setDraft((current) => ({ ...current, greenMax: value }))
+            }
+            onBlur={commit}
+            style={styles.input}
+          />
+        </View>
+        <View style={styles.bandCol}>
+          <Text style={styles.bandLabel}>Orange ≤</Text>
+          <TextInput
+            keyboardType="numeric"
+            maxLength={3}
+            value={draft.orangeMax}
+            onChangeText={(value) =>
+              setDraft((current) => ({ ...current, orangeMax: value }))
+            }
+            onBlur={commit}
+            style={styles.input}
+          />
+        </View>
       </View>
-      <View style={styles.bandCol}>
-        <Text style={styles.bandLabel}>Vert ≤</Text>
-        <TextInput
-          keyboardType="numeric"
-          value={String(band.greenMax)}
-          onChangeText={(value) =>
-            onChange({ ...band, greenMax: Number(value) || 0 })
-          }
-          style={styles.input}
-        />
-      </View>
-      <View style={styles.bandCol}>
-        <Text style={styles.bandLabel}>Orange ≤</Text>
-        <TextInput
-          keyboardType="numeric"
-          value={String(band.orangeMax)}
-          onChangeText={(value) =>
-            onChange({ ...band, orangeMax: Number(value) || 0 })
-          }
-          style={styles.input}
-        />
-      </View>
+      {invalid ? (
+        <Text accessibilityRole="alert" style={styles.bandError}>
+          {t("settings.bandOrder")}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -199,6 +242,7 @@ const styles = StyleSheet.create({
   },
   bandCol: {
     flex: 1,
+    minWidth: 0,
   },
   bandLabel: {
     fontSize: 11,
@@ -213,6 +257,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingHorizontal: 8,
     color: colors.foreground,
+    fontSize: 16,
+  },
+  bandError: {
+    marginTop: 8,
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.statusAlert,
   },
   disclaimer: {
     marginTop: 16,

@@ -20,6 +20,7 @@ import {
 } from "lodash";
 
 import {
+  clampNote,
   isAfterContext,
   type MealPhoto,
   type NewReading,
@@ -254,6 +255,7 @@ export function addReadingToLog(
   meta: { readingId: string; mealId: string; userId: string; now: number },
   mode: "replace" | "lift" = "replace",
 ): LocalLog {
+  input = { ...input, note: clampNote(input.note) };
   const slot = mealSlotForContext(input.context);
   const match = findGroupedMeal(
     matchesFromMeals(log.meals),

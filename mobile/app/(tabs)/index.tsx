@@ -54,7 +54,12 @@ export default function TodayScreen() {
         style={styles.cta}
       />
       {!ready ? (
-        <View style={styles.skeleton} />
+        <View
+          accessible
+          accessibilityLabel={t("loading.journal")}
+          accessibilityState={{ busy: true }}
+          style={styles.skeleton}
+        />
       ) : (
         <>
           <Text style={styles.count}>

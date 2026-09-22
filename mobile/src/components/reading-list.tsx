@@ -25,6 +25,7 @@ import {
   type Reading,
 } from "@glowcose/core";
 import { StatusBadge, StatusDot } from "@/components/status-badge";
+import { Button } from "@/components/ui";
 import { useSettings } from "@/providers/settings-provider";
 import { colors } from "@/theme";
 
@@ -40,11 +41,13 @@ export function ReadingsList({
   readings,
   emptyTitle,
   emptyBody,
+  emptyAction,
   byMeal = false,
 }: {
   readings: Reading[];
   emptyTitle: string;
   emptyBody: string;
+  emptyAction?: { label: string; onPress: () => void };
   byMeal?: boolean;
 }) {
   const router = useRouter();
@@ -55,6 +58,13 @@ export function ReadingsList({
       <View style={styles.empty}>
         <Text style={styles.emptyTitle}>{emptyTitle}</Text>
         <Text style={styles.emptyBody}>{emptyBody}</Text>
+        {emptyAction ? (
+          <Button
+            title={emptyAction.label}
+            onPress={emptyAction.onPress}
+            style={styles.emptyAction}
+          />
+        ) : null}
       </View>
     );
   }
@@ -142,7 +152,9 @@ function MealSections({ readings }: { readings: Reading[] }) {
             <View style={styles.mealHead}>
               <Text style={styles.mealTitle}>{section.label}</Text>
               {section.note ? (
-                <Text style={styles.mealNote}>{section.note}</Text>
+                <Text style={styles.mealNote} numberOfLines={4}>
+                  {section.note}
+                </Text>
               ) : null}
               {size(urls) > 0 ? (
                 <View style={styles.photos}>
@@ -299,6 +311,9 @@ const styles = StyleSheet.create({
   secondary: {
     fontSize: 11,
     color: colors.muted,
+  },
+  emptyAction: {
+    marginTop: 16,
   },
   empty: {
     borderWidth: 1,

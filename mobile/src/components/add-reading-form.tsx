@@ -11,13 +11,16 @@ import {
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { addDays, addMinutes } from "date-fns";
-import { compact, filter, get, map, size, take } from "lodash";
+import { compact, filter, get, map, size, take, trim } from "lodash";
 import { Camera, Images } from "lucide-react-native";
 
 import {
+  clampNote,
   CONTEXTS,
   CONTEXT_LABELS,
   defaultContextForTime,
+  glucoseInputBounds,
+  MAX_NOTE_LENGTH,
   effectiveOffset,
   formatDayHeading,
   formatInputValue,
@@ -82,6 +85,7 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
     })),
   );
   const [saving, setSaving] = useState(false);
+  const [archiving, setArchiving] = useState(false);
   const mealKey = formMealKey(readings, context, takenAt, initial);
   const [attachedMealKey, setAttachedMealKey] = useState(mealKey);
   if (attachedMealKey !== mealKey) {
@@ -176,9 +180,25 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
     );
   }
 
+  const bounds = glucoseInputBounds(settings.unit);
+  const invalidReading = trim(rawValue) !== "" && parsedMgDl === null;
+
+  async function onArchive() {
+    if (!initial || archiving || saving) return;
+    setArchiving(true);
+    try {
+      await archiveReading(initial._id);
+      router.replace("/");
+    } catch {
+      Alert.alert(t("form.archive"), t("form.saveUnavailable"));
+      setArchiving(false);
+    }
+  }
+
   async function onSubmit() {
+    if (saving || archiving) return;
     if (parsedMgDl === null) {
-      Alert.alert("Glycémie", t("form.invalidReading"));
+      Alert.alert("Glycémie", t("form.invalidReading", bounds));
       return;
     }
     setSaving(true);
@@ -207,7 +227,7 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
         valueMgDl: parsedMgDl,
         context,
         postMealOffset: effectiveOffset(context, postMealOffset),
-        note: note.trim() || undefined,
+        note: clampNote(note),
         takenAt,
         photos: nextPhotos,
       };
@@ -218,7 +238,7 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
       }
       router.replace("/");
     } catch {
-      Alert.alert("Enregistrement", t("form.saveUnavailable"));
+      Alert.alert(t("form.save"), t("form.saveUnavailable"));
       setSaving(false);
     }
   }
@@ -241,8 +261,16 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
           placeholderTextColor={colors.muted}
           keyboardType="decimal-pad"
           autoFocus={!initial}
+          maxLength={8}
+          autoComplete="off"
+          accessibilityLabel="Glycémie"
           style={styles.valueInput}
         />
+        {invalidReading ? (
+          <Text accessibilityRole="alert" style={styles.error}>
+            {t("form.invalidReading", bounds)}
+          </Text>
+        ) : null}
         {parsedMgDl !== null ? (
           <Text style={styles.secondary}>
             {formatSecondary(parsedMgDl, settings.unit)}
@@ -331,8 +359,14 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
         placeholder="Ce qui a été mangé…"
         placeholderTextColor={colors.muted}
         multiline
+        maxLength={MAX_NOTE_LENGTH}
         style={styles.note}
       />
+      {size(note) > MAX_NOTE_LENGTH - 80 ? (
+        <Text style={styles.hint}>
+          {t("form.noteCount", { count: size(note), max: MAX_NOTE_LENGTH })}
+        </Text>
+      ) : null}
 
       <Text style={styles.section}>Photos du repas</Text>
       {map(photos, (photo, index) => (
@@ -361,14 +395,15 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
       ) : null}
 
       <Button
-        title={saving ? "Enregistrement…" : "Enregistrer"}
-        disabled={saving || parsedMgDl === null}
+        title={saving ? t("form.saving") : t("form.save")}
+        disabled={saving || archiving || parsedMgDl === null}
         onPress={() => void onSubmit()}
       />
       {initial ? (
         <Button
-        title={t("form.archive")}
+          title={archiving ? t("form.archiving") : t("form.archive")}
           variant="ghost"
+          disabled={saving || archiving}
           onPress={() => {
             Alert.alert(t("form.archive"), t("form.archivePrompt"), [
               { text: t("form.cancel"), style: "cancel" },
@@ -376,9 +411,7 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
                 text: t("form.archive"),
                 style: "destructive",
                 onPress: () => {
-                  void archiveReading(initial._id).then(() =>
-                    router.replace("/"),
-                  );
+                  void onArchive();
                 },
               },
             ]);
@@ -418,6 +451,12 @@ const styles = StyleSheet.create({
   secondary: {
     fontSize: 13,
     color: colors.muted,
+    textAlign: "center",
+  },
+  error: {
+    marginTop: 8,
+    fontSize: 13,
+    color: colors.statusAlert,
     textAlign: "center",
   },
   statusBlock: {

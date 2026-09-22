@@ -2,6 +2,10 @@ import { compact, filter, isUndefined, keyBy, map, omit, omitBy, orderBy, size, 
 import { v } from "convex/values";
 
 import { planImport } from "../packages/core/src/csv-import";
+import {
+  assertSavableReading,
+  clampNote,
+} from "../packages/core/src/glucose";
 import type { MealPhoto } from "../packages/core/src/meal";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -230,6 +234,11 @@ export const add = mutation({
     const userId = await requireUserId(ctx);
     const carnetId = await requireCarnetId(ctx, userId);
     await liftLegacyReadings(ctx, carnetId, userId, args.timeZone);
+    assertSavableReading({
+      valueMgDl: args.valueMgDl,
+      takenAt: args.takenAt,
+    });
+    const note = clampNote(args.note);
     const photos = incomingPhotos(args);
     if (photos) {
       await validatePhotos(ctx, photos);
@@ -240,7 +249,7 @@ export const add = mutation({
       carnetId,
       context: args.context,
       takenAt: args.takenAt,
-      note: args.note,
+      note,
       photos,
       now: createdAt,
       mode: "replace",
@@ -281,15 +290,17 @@ export const importMany = mutation({
     const createdAt = Date.now();
     let live: Doc<"meals">[] | undefined;
     for (const reading of toAdd) {
-      if (!Number.isFinite(reading.takenAt) || reading.valueMgDl < 20 || reading.valueMgDl > 600) {
-        throw new Error("Mesure invalide");
-      }
+      assertSavableReading({
+        valueMgDl: reading.valueMgDl,
+        takenAt: reading.takenAt,
+      });
+      const note = clampNote(reading.note);
       const attached = await attachMeal(ctx, {
         userId,
         carnetId,
         context: reading.context,
         takenAt: reading.takenAt,
-        note: reading.note,
+        note,
         now: createdAt,
         mode: "lift",
         timeZone: args.timeZone,
@@ -334,6 +345,11 @@ export const update = mutation({
     const reading = await loadReadableReading(ctx, args.id, userId);
     const carnetId = reading.carnetId ?? (await requireCarnetId(ctx, userId));
     await liftLegacyReadings(ctx, carnetId, userId, args.timeZone);
+    assertSavableReading({
+      valueMgDl: args.valueMgDl,
+      takenAt: args.takenAt,
+    });
+    const note = clampNote(args.note);
     const photos = incomingPhotos(args);
     if (photos) {
       await validatePhotos(ctx, photos);
@@ -345,7 +361,7 @@ export const update = mutation({
       carnetId,
       context: args.context,
       takenAt: args.takenAt,
-      note: args.note,
+      note,
       photos,
       now,
       mode: "replace",

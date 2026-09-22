@@ -1,5 +1,7 @@
 import {
+  Component,
   createContext,
+  Fragment,
   useCallback,
   useContext,
   useMemo,
@@ -9,6 +11,7 @@ import {
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { find, map, orderBy } from "lodash";
 
+import { JournalUnavailable } from "@/components/journal-unavailable";
 import { api } from "../../../convex/_generated/api";
 import type { NewReading, Reading } from "@glowcose/core";
 import {
@@ -125,7 +128,7 @@ function mapConvexReading(doc: {
   };
 }
 
-export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
+function ConvexReadingsLive({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const local = useLocalReadingsState();
   const convexReadings = useQuery(
@@ -245,6 +248,38 @@ export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
 
   return (
     <ReadingsContext.Provider value={value}>{children}</ReadingsContext.Provider>
+  );
+}
+
+type BoundaryState = { error: Error | null; nonce: number };
+
+class ReadingsQueryBoundary extends Component<
+  { children: ReactNode },
+  BoundaryState
+> {
+  state: BoundaryState = { error: null, nonce: 0 };
+
+  static getDerivedStateFromError(error: Error): Partial<BoundaryState> {
+    return { error };
+  }
+
+  private retry = () => {
+    this.setState((state) => ({ error: null, nonce: state.nonce + 1 }));
+  };
+
+  render() {
+    if (this.state.error) {
+      return <JournalUnavailable onRetry={this.retry} />;
+    }
+    return <Fragment key={this.state.nonce}>{this.props.children}</Fragment>;
+  }
+}
+
+export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
+  return (
+    <ReadingsQueryBoundary>
+      <ConvexReadingsLive>{children}</ConvexReadingsLive>
+    </ReadingsQueryBoundary>
   );
 }
 

@@ -21,12 +21,12 @@ export default function GraphRoute() {
       <View style={styles.chips}>
         <Chip
           selected={rangeDays === 7}
-          label="7 jours"
+          label={t("graph.days7")}
           onPress={() => setRangeDays(7)}
         />
         <Chip
           selected={rangeDays === 30}
-          label="30 jours"
+          label={t("graph.days30")}
           onPress={() => setRangeDays(30)}
         />
       </View>
@@ -38,7 +38,12 @@ export default function GraphRoute() {
         {ready ? (
           <GlucoseChart readings={readings} rangeDays={rangeDays} />
         ) : (
-          <View style={styles.skeleton} />
+          <View
+            accessible
+            accessibilityLabel={t("loading.journal")}
+            accessibilityState={{ busy: true }}
+            style={styles.skeleton}
+          />
         )}
       </View>
       <Disclaimer style={styles.disclaimer} />

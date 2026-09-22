@@ -10,7 +10,7 @@ import {
   type FormEvent,
 } from "react";
 import { toast } from "sonner";
-import { filter, get, map, size, take } from "lodash";
+import { filter, get, map, size, take, trim } from "lodash";
 
 import { Chip } from "@/components/chip";
 import { useReadings } from "@/components/readings-provider";
@@ -35,6 +35,9 @@ import {
   defaultContextForTime,
   effectiveOffset,
   isAfterContext,
+  clampNote,
+  glucoseInputBounds,
+  MAX_NOTE_LENGTH,
   mgDlToGl,
   parseGlucoseInput,
   readingStatus,
@@ -144,6 +147,8 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
     })),
   );
   const [saving, setSaving] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
   const takenAtMs = fromDatetimeLocalValue(takenAt);
   const mealKey = formMealKey(readings, context, takenAtMs, initial);
   const [attachedMealKey, setAttachedMealKey] = useState(mealKey);
@@ -195,7 +200,7 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
       );
       setPhotos((current) => [...current, ...next]);
     } catch {
-      toast.error("Impossible de lire cette photo.");
+      toast.error(t("form.photoUnreadable"));
     }
   }
 
@@ -213,10 +218,32 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
     );
   }
 
+  const bounds = glucoseInputBounds(settings.unit);
+  const invalidReading = trim(rawValue) !== "" && parsedMgDl === null;
+  const invalidTime = !Number.isFinite(takenAtMs);
+
+  async function onArchive() {
+    if (!initial || archiving || saving) return;
+    setArchiving(true);
+    try {
+      await archiveReading(initial._id);
+      toast.success(t("form.archived"));
+      router.push("/");
+    } catch {
+      toast.error(t("form.saveUnavailable"));
+      setArchiving(false);
+    }
+  }
+
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
+    if (saving || archiving) return;
     if (parsedMgDl === null) {
-      toast.error(t("form.invalidReading"));
+      toast.error(t("form.invalidReading", bounds));
+      return;
+    }
+    if (invalidTime) {
+      toast.error(t("form.invalidTime"));
       return;
     }
     setSaving(true);
@@ -240,16 +267,16 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
         valueMgDl: parsedMgDl,
         context,
         postMealOffset: effectiveOffset(context, postMealOffset),
-        note: note.trim() || undefined,
+        note: clampNote(note),
         takenAt: fromDatetimeLocalValue(takenAt),
         photos: nextPhotos,
       };
       if (initial) {
         await updateReading(initial._id, payload);
-        toast.success("Mesure mise à jour");
+        toast.success(t("form.updated"));
       } else {
         await addReading(payload);
-        toast.success("Glycémie enregistrée");
+        toast.success(t("form.saved"));
       }
       router.push("/");
     } catch {
@@ -259,7 +286,10 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-6 pb-28">
+    <form
+      onSubmit={onSubmit}
+      className={cn("flex flex-col gap-6", confirmArchive ? "pb-44" : "pb-28")}
+    >
       <section
         className={cn(
           "rounded-3xl px-4 py-6 text-center ring-1 transition-colors",
@@ -275,11 +305,15 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
         <Input
           id="glucose"
           inputMode="decimal"
+          autoComplete="off"
           autoFocus={!initial}
+          maxLength={8}
           placeholder={unitPlaceholder(settings.unit)}
           value={rawValue}
+          aria-invalid={invalidReading || undefined}
+          aria-describedby={invalidReading ? "glucose-error" : undefined}
           onChange={(event) => setRawValue(event.target.value)}
-          className="h-20 border-0 bg-transparent text-center font-display text-6xl tracking-tight shadow-none focus-visible:ring-0 md:text-6xl"
+          className="h-20 min-w-0 border-0 bg-transparent text-center font-display text-6xl tracking-tight shadow-none focus-visible:ring-0 md:text-6xl"
         />
         {parsedMgDl !== null ? (
           <p className="mt-1 text-sm text-muted-foreground">
@@ -290,6 +324,11 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
             Unité d’affichage : {settings.unit === "gL" ? "g/L" : settings.unit === "mmol" ? "mmol/L" : "mg/dL"}
           </p>
         )}
+        {invalidReading ? (
+          <p id="glucose-error" role="alert" className="mt-2 text-sm text-destructive">
+            {t("form.invalidReading", bounds)}
+          </p>
+        ) : null}
         <div className="mt-4 flex flex-col items-center gap-2">
           {status ? <StatusBadge status={status} /> : null}
           <p className="text-sm text-muted-foreground">
@@ -340,10 +379,18 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
         <Input
           id="takenAt"
           type="datetime-local"
+          required
           value={takenAt}
+          aria-invalid={invalidTime || undefined}
+          aria-describedby={invalidTime ? "taken-at-error" : undefined}
           onChange={(event) => setTakenAt(event.target.value)}
           className="h-11"
         />
+        {invalidTime ? (
+          <p id="taken-at-error" role="alert" className="text-sm text-destructive">
+            {t("form.invalidTime")}
+          </p>
+        ) : null}
       </section>
 
       <section className="space-y-2">
@@ -351,10 +398,16 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
         <Textarea
           id="note"
           value={note}
+          maxLength={MAX_NOTE_LENGTH}
           onChange={(event) => setNote(event.target.value)}
           placeholder="Ce qui a été mangé…"
-          className="min-h-20"
+          className="min-h-20 wrap-break-word"
         />
+        {size(note) > MAX_NOTE_LENGTH - 80 ? (
+          <p className="text-xs text-muted-foreground">
+            {t("form.noteCount", { count: size(note), max: MAX_NOTE_LENGTH })}
+          </p>
+        ) : null}
       </section>
 
       <section className="space-y-2">
@@ -413,22 +466,47 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
         <div className="mx-auto flex w-full max-w-lg flex-col gap-2">
           <Button
             type="submit"
-            disabled={saving || parsedMgDl === null}
+            disabled={
+              saving || archiving || parsedMgDl === null || invalidTime
+            }
             className="h-12 flex-1 rounded-2xl text-base"
           >
             <Check className="size-4" />
-            {saving ? "Enregistrement…" : initial ? "Enregistrer" : "Enregistrer"}
+            {saving ? t("form.saving") : t("form.save")}
           </Button>
-          {initial ? (
+          {initial && confirmArchive ? (
+            <div className="flex flex-col gap-2">
+              <p className="text-center text-sm text-muted-foreground">
+                {t("form.archivePrompt")}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-11 min-w-0 flex-1"
+                  disabled={archiving}
+                  onClick={() => setConfirmArchive(false)}
+                >
+                  {t("form.cancel")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="h-11 min-w-0 flex-1"
+                  disabled={archiving || saving}
+                  onClick={() => void onArchive()}
+                >
+                  {archiving ? t("form.archiving") : t("form.archive")}
+                </Button>
+              </div>
+            </div>
+          ) : initial ? (
             <Button
               type="button"
               variant="ghost"
               className="text-muted-foreground"
-              onClick={async () => {
-                await archiveReading(initial._id);
-                toast.success("Mesure archivée");
-                router.push("/");
-              }}
+              disabled={saving || archiving}
+              onClick={() => setConfirmArchive(true)}
             >
               {t("form.archive")}
             </Button>

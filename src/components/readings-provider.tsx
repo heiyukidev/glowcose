@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  Component,
   createContext,
+  Fragment,
   useCallback,
   useContext,
   useMemo,
@@ -23,6 +25,7 @@ import {
   subscribeLocalStore,
   updateLocalReading,
 } from "@/lib/readings-store";
+import { JournalUnavailable } from "@/components/journal-unavailable";
 import { planImport } from "@/lib/csv-import";
 import type { NewReading, Reading } from "@/lib/glucose";
 
@@ -147,7 +150,7 @@ function mapConvexReading(doc: {
   };
 }
 
-export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
+function ConvexReadingsLive({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const local = useLocalReadingsState();
   const convexReadings = useQuery(
@@ -282,6 +285,38 @@ export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
 
   return (
     <ReadingsContext.Provider value={value}>{children}</ReadingsContext.Provider>
+  );
+}
+
+type BoundaryState = { error: Error | null; nonce: number };
+
+class ReadingsQueryBoundary extends Component<
+  { children: ReactNode },
+  BoundaryState
+> {
+  state: BoundaryState = { error: null, nonce: 0 };
+
+  static getDerivedStateFromError(error: Error): Partial<BoundaryState> {
+    return { error };
+  }
+
+  private retry = () => {
+    this.setState((state) => ({ error: null, nonce: state.nonce + 1 }));
+  };
+
+  render() {
+    if (this.state.error) {
+      return <JournalUnavailable fullScreen onRetry={this.retry} />;
+    }
+    return <Fragment key={this.state.nonce}>{this.props.children}</Fragment>;
+  }
+}
+
+export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
+  return (
+    <ReadingsQueryBoundary>
+      <ConvexReadingsLive>{children}</ConvexReadingsLive>
+    </ReadingsQueryBoundary>
   );
 }
 

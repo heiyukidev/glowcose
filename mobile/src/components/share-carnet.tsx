@@ -3,6 +3,7 @@ import { Alert, Share, StyleSheet, Text, TextInput, View } from "react-native";
 
 import {
   formatInviteCode,
+  INVITE_CODE_LENGTH,
   inviteShareMessage,
   MAX_CARNET_MEMBERS,
   t,
@@ -27,6 +28,7 @@ export function ShareCarnet() {
   const invite = mine?.invite;
 
   async function handleCreate() {
+    if (busy) return;
     setBusy(true);
     try {
       await createInvite();
@@ -50,6 +52,7 @@ export function ShareCarnet() {
   }
 
   async function handleJoin() {
+    if (busy) return;
     setBusy(true);
     try {
       await joinWithCode(joinCode);
@@ -113,6 +116,7 @@ export function ShareCarnet() {
               <TextInput
                 autoCapitalize="characters"
                 autoCorrect={false}
+                maxLength={INVITE_CODE_LENGTH + 8}
                 placeholder={t("share.joinPlaceholder")}
                 placeholderTextColor={colors.muted}
                 value={joinCode}

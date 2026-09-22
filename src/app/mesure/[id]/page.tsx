@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 
 import { AddReadingForm } from "@/components/add-reading-form";
+import { LoadingStatus } from "@/components/loading-status";
 import { Disclaimer } from "@/components/disclaimer";
 import { useReadings } from "@/components/readings-provider";
 import { Button } from "@/components/ui/button";
@@ -36,7 +37,9 @@ export default function EditPage() {
         </div>
       </header>
       {!ready ? (
-        <div className="h-40 animate-pulse rounded-3xl bg-muted" />
+        <LoadingStatus>
+          <div className="h-40 animate-pulse rounded-3xl bg-muted" />
+        </LoadingStatus>
       ) : reading ? (
         <AddReadingForm initial={reading} />
       ) : (

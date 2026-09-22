@@ -3,6 +3,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
   DEFAULT_SETTINGS,
+  isOrderedPreset,
+  resolvedThresholds,
   THRESHOLD_PRESETS,
   type AppSettings,
   type DiabetesType,
@@ -56,9 +58,7 @@ function normalize(parsed: Partial<AppSettings>): AppSettings {
     diabetesType,
     unit: parsed.unit ?? "gL",
     onboarded: Boolean(parsed.onboarded),
-    thresholds: parsed.thresholds
-      ? parsed.thresholds
-      : cloneDeep(THRESHOLD_PRESETS[diabetesType]),
+    thresholds: resolvedThresholds(diabetesType, parsed.thresholds),
   };
 }
 
@@ -142,6 +142,7 @@ export function updateDiabetesType(diabetesType: DiabetesType): void {
 }
 
 export function updateThresholds(thresholds: ThresholdPreset): void {
+  if (!isOrderedPreset(thresholds)) return;
   saveSettings({ ...getSettingsSnapshot(), thresholds });
   syncCarnetSettings({ thresholds });
 }

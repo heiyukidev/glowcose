@@ -58,7 +58,10 @@ const FRENCH_MESSAGES = {
   "history.title": "Historique",
   "history.emptyTitle": "Aucune glycémie",
   "history.emptyBody": "Les mesures apparaîtront ici, regroupées par jour.",
+  "history.loadMore": "Mesures plus anciennes",
   "graph.title": "Graphique",
+  "graph.days7": "7 jours",
+  "graph.days30": "30 jours",
   "graph.empty": "Pas encore de mesure sur cette période.",
   "graph.trend": "Tendance",
   "graph.reference":
@@ -108,11 +111,27 @@ const FRENCH_MESSAGES = {
   "edit.title": "Modifier",
   "edit.lead": "Ajustez la mesure ou archivez-la.",
   "edit.missing": "Mesure introuvable. Elle a peut-être été archivée.",
-  "form.invalidReading": "Entrez une glycémie valide.",
+  "form.invalidReading": "Entrez une valeur entre {{min}} et {{max}}.",
+  "form.invalidTime": "Indiquez le jour et l’heure de la mesure.",
+  "form.save": "Enregistrer",
+  "form.saving": "Enregistrement…",
+  "form.saved": "Glycémie enregistrée",
+  "form.updated": "Mesure mise à jour",
   "form.saveUnavailable": "Enregistrement impossible pour le moment.",
   "form.archive": "Archiver",
+  "form.archiving": "Archivage…",
+  "form.archived": "Mesure archivée",
   "form.archivePrompt": "Archiver cette mesure ?",
   "form.cancel": "Annuler",
+  "form.photoUnreadable": "Impossible de lire cette photo.",
+  "form.noteCount": "{{count}} / {{max}}",
+  "settings.bandOrder":
+    "Hypo, vert puis orange, chacun entre 40 et 400 mg/dL.",
+  "loading.journal": "Chargement du carnet…",
+  "error.title": "Le carnet n’a pas pu s’afficher.",
+  "error.body":
+    "La connexion a été interrompue. Les mesures déjà enregistrées sont conservées.",
+  "error.retry": "Réessayer",
 } as const;
 
 const MESSAGES = {

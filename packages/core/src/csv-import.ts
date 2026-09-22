@@ -18,6 +18,7 @@ import {
 } from "lodash";
 
 import {
+  clampNote,
   defaultContextForTime,
   effectiveOffset,
   parseGlucoseInput,
@@ -453,14 +454,14 @@ function parseDataRow(
 
   const mapped = resolveContext(row, columns, takenAt);
   const noteRaw = columns.note >= 0 ? cellAt(row, columns.note) : "";
-  const note = trim(noteRaw);
+  const note = clampNote(noteRaw);
 
   return {
     valueMgDl,
     context: mapped.context,
     postMealOffset: effectiveOffset(mapped.context, mapped.postMealOffset),
     takenAt,
-    ...(note !== "" ? { note } : {}),
+    ...(note ? { note } : {}),
   };
 }
 

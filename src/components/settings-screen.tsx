@@ -1,6 +1,7 @@
 "use client";
 
-import { get, map } from "lodash";
+import { useEffect, useState, type FocusEvent } from "react";
+import { get, isEqual, map } from "lodash";
 
 import { AppHeader } from "@/components/app-header";
 import { Chip } from "@/components/chip";
@@ -12,11 +13,13 @@ import { UnitToggle } from "@/components/unit-toggle";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  bandFromDraft,
   DIABETES_TYPE_LABELS,
   DIABETES_TYPES,
   type BandThresholds,
   type ThresholdPreset,
 } from "@/lib/glucose";
+import { t } from "@/lib/i18n";
 
 const BAND_ROWS: Array<{
   key: keyof ThresholdPreset;
@@ -28,6 +31,14 @@ const BAND_ROWS: Array<{
   { key: "other", label: "Autre / hors repas" },
 ];
 
+function draftsFromBand(band: BandThresholds) {
+  return {
+    hypoBelow: String(band.hypoBelow),
+    greenMax: String(band.greenMax),
+    orangeMax: String(band.orangeMax),
+  };
+}
+
 function BandFields({
   band,
   onChange,
@@ -35,41 +46,88 @@ function BandFields({
   band: BandThresholds;
   onChange: (next: BandThresholds) => void;
 }) {
+  const [draft, setDraft] = useState(() => draftsFromBand(band));
+  const [invalid, setInvalid] = useState(false);
+
+  useEffect(() => {
+    setDraft(draftsFromBand(band));
+    setInvalid(false);
+  }, [band]);
+
+  function commitFromGroup(event: FocusEvent<HTMLDivElement>) {
+    const nextTarget = event.relatedTarget;
+    if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) {
+      return;
+    }
+    const values = map(
+      event.currentTarget.querySelectorAll("input"),
+      (field) => field.value,
+    );
+    const next = bandFromDraft({
+      hypoBelow: get(values, 0) ?? "",
+      greenMax: get(values, 1) ?? "",
+      orangeMax: get(values, 2) ?? "",
+    });
+    if (!next) {
+      setInvalid(true);
+      setDraft(draftsFromBand(band));
+      return;
+    }
+    setInvalid(false);
+    if (!isEqual(next, band)) onChange(next);
+  }
+
   return (
-    <div className="grid grid-cols-3 gap-2">
-      <div>
-        <Label className="text-[11px] text-muted-foreground">Hypo &lt;</Label>
-        <Input
-          inputMode="numeric"
-          className="h-10"
-          value={band.hypoBelow}
-          onChange={(event) =>
-            onChange({ ...band, hypoBelow: Number(event.target.value) || 0 })
-          }
-        />
+    <div className="space-y-2" onBlur={commitFromGroup}>
+      <div className="grid grid-cols-3 gap-2">
+        <div className="min-w-0">
+          <Label className="text-[11px] text-muted-foreground">Hypo &lt;</Label>
+          <Input
+            inputMode="numeric"
+            maxLength={3}
+            aria-invalid={invalid || undefined}
+            className="h-10"
+            value={draft.hypoBelow}
+            onChange={(event) =>
+              setDraft((current) => ({ ...current, hypoBelow: event.target.value }))
+            }
+          />
+        </div>
+        <div className="min-w-0">
+          <Label className="text-[11px] text-muted-foreground">Vert ≤</Label>
+          <Input
+            inputMode="numeric"
+            maxLength={3}
+            aria-invalid={invalid || undefined}
+            className="h-10"
+            value={draft.greenMax}
+            onChange={(event) =>
+              setDraft((current) => ({ ...current, greenMax: event.target.value }))
+            }
+          />
+        </div>
+        <div className="min-w-0">
+          <Label className="text-[11px] text-muted-foreground">Orange ≤</Label>
+          <Input
+            inputMode="numeric"
+            maxLength={3}
+            aria-invalid={invalid || undefined}
+            className="h-10"
+            value={draft.orangeMax}
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                orangeMax: event.target.value,
+              }))
+            }
+          />
+        </div>
       </div>
-      <div>
-        <Label className="text-[11px] text-muted-foreground">Vert ≤</Label>
-        <Input
-          inputMode="numeric"
-          className="h-10"
-          value={band.greenMax}
-          onChange={(event) =>
-            onChange({ ...band, greenMax: Number(event.target.value) || 0 })
-          }
-        />
-      </div>
-      <div>
-        <Label className="text-[11px] text-muted-foreground">Orange ≤</Label>
-        <Input
-          inputMode="numeric"
-          className="h-10"
-          value={band.orangeMax}
-          onChange={(event) =>
-            onChange({ ...band, orangeMax: Number(event.target.value) || 0 })
-          }
-        />
-      </div>
+      {invalid ? (
+        <p role="alert" className="text-xs text-destructive">
+          {t("settings.bandOrder")}
+        </p>
+      ) : null}
     </div>
   );
 }

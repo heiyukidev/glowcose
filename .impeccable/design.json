@@ -1,0 +1,254 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-22T12:05:00.000Z",
+  "title": "Design System: Gluciel",
+  "extensions": {
+    "colorMeta": {
+      "cream": {
+        "role": "neutral",
+        "displayName": "Cream",
+        "canonical": "oklch(0.985 0.012 85)",
+        "tonalRamp": ["oklch(0.22 0.012 85)", "oklch(0.34 0.012 85)", "oklch(0.46 0.012 85)", "oklch(0.58 0.012 85)", "oklch(0.70 0.012 85)", "oklch(0.82 0.012 85)", "oklch(0.90 0.012 85)", "oklch(0.97 0.012 85)"]
+      },
+      "card-cream": {
+        "role": "neutral",
+        "displayName": "Card Cream",
+        "canonical": "oklch(0.995 0.008 85)",
+        "tonalRamp": ["oklch(0.22 0.008 85)", "oklch(0.34 0.008 85)", "oklch(0.46 0.008 85)", "oklch(0.58 0.008 85)", "oklch(0.70 0.008 85)", "oklch(0.82 0.008 85)", "oklch(0.90 0.008 85)", "oklch(0.97 0.008 85)"]
+      },
+      "sand": {
+        "role": "neutral",
+        "displayName": "Sand",
+        "canonical": "oklch(0.94 0.03 85)",
+        "tonalRamp": ["oklch(0.22 0.03 85)", "oklch(0.34 0.03 85)", "oklch(0.46 0.03 85)", "oklch(0.58 0.03 85)", "oklch(0.70 0.03 85)", "oklch(0.82 0.03 85)", "oklch(0.90 0.03 85)", "oklch(0.96 0.03 85)"]
+      },
+      "muted-cream": {
+        "role": "neutral",
+        "displayName": "Muted Cream",
+        "canonical": "oklch(0.95 0.022 85)",
+        "tonalRamp": ["oklch(0.22 0.022 85)", "oklch(0.34 0.022 85)", "oklch(0.46 0.022 85)", "oklch(0.58 0.022 85)", "oklch(0.70 0.022 85)", "oklch(0.82 0.022 85)", "oklch(0.90 0.022 85)", "oklch(0.96 0.022 85)"]
+      },
+      "warm-line": {
+        "role": "neutral",
+        "displayName": "Warm Line",
+        "canonical": "oklch(0.9 0.025 80)",
+        "tonalRamp": ["oklch(0.20 0.025 80)", "oklch(0.32 0.025 80)", "oklch(0.44 0.025 80)", "oklch(0.56 0.025 80)", "oklch(0.68 0.025 80)", "oklch(0.78 0.025 80)", "oklch(0.88 0.025 80)", "oklch(0.95 0.025 80)"]
+      },
+      "warm-brown": {
+        "role": "neutral",
+        "displayName": "Warm Brown",
+        "canonical": "oklch(0.28 0.035 55)",
+        "tonalRamp": ["oklch(0.18 0.035 55)", "oklch(0.28 0.035 55)", "oklch(0.38 0.035 55)", "oklch(0.48 0.035 55)", "oklch(0.58 0.035 55)", "oklch(0.70 0.035 55)", "oklch(0.82 0.035 55)", "oklch(0.94 0.035 55)"]
+      },
+      "muted-brown": {
+        "role": "neutral",
+        "displayName": "Muted Brown",
+        "canonical": "oklch(0.5 0.03 60)",
+        "tonalRamp": ["oklch(0.18 0.03 60)", "oklch(0.30 0.03 60)", "oklch(0.40 0.03 60)", "oklch(0.50 0.03 60)", "oklch(0.62 0.03 60)", "oklch(0.74 0.03 60)", "oklch(0.84 0.03 60)", "oklch(0.94 0.03 60)"]
+      },
+      "muted-teal": {
+        "role": "primary",
+        "displayName": "Muted Teal",
+        "canonical": "oklch(0.48 0.08 168)",
+        "tonalRamp": ["oklch(0.22 0.08 168)", "oklch(0.32 0.08 168)", "oklch(0.42 0.08 168)", "oklch(0.52 0.08 168)", "oklch(0.62 0.08 168)", "oklch(0.74 0.08 168)", "oklch(0.84 0.08 168)", "oklch(0.94 0.08 168)"]
+      },
+      "teal-ink": {
+        "role": "primary",
+        "displayName": "Teal Ink",
+        "canonical": "oklch(0.99 0.01 95)",
+        "tonalRamp": ["oklch(0.22 0.01 95)", "oklch(0.34 0.01 95)", "oklch(0.46 0.01 95)", "oklch(0.58 0.01 95)", "oklch(0.70 0.01 95)", "oklch(0.82 0.01 95)", "oklch(0.90 0.01 95)", "oklch(0.97 0.01 95)"]
+      },
+      "focus-teal": {
+        "role": "primary",
+        "displayName": "Focus Teal",
+        "canonical": "oklch(0.55 0.07 168)",
+        "tonalRamp": ["oklch(0.22 0.07 168)", "oklch(0.32 0.07 168)", "oklch(0.42 0.07 168)", "oklch(0.52 0.07 168)", "oklch(0.62 0.07 168)", "oklch(0.74 0.07 168)", "oklch(0.84 0.07 168)", "oklch(0.94 0.07 168)"]
+      },
+      "in-range-green": {
+        "role": "secondary",
+        "displayName": "In-range Green",
+        "canonical": "oklch(0.68 0.13 155)",
+        "tonalRamp": ["oklch(0.22 0.13 155)", "oklch(0.32 0.13 155)", "oklch(0.42 0.13 155)", "oklch(0.52 0.13 155)", "oklch(0.62 0.13 155)", "oklch(0.72 0.13 155)", "oklch(0.84 0.13 155)", "oklch(0.94 0.13 155)"]
+      },
+      "in-range-green-ink": {
+        "role": "secondary",
+        "displayName": "In-range Green Ink",
+        "canonical": "oklch(0.35 0.08 155)",
+        "tonalRamp": ["oklch(0.18 0.08 155)", "oklch(0.28 0.08 155)", "oklch(0.38 0.08 155)", "oklch(0.48 0.08 155)", "oklch(0.60 0.08 155)", "oklch(0.72 0.08 155)", "oklch(0.84 0.08 155)", "oklch(0.94 0.08 155)"]
+      },
+      "high-amber": {
+        "role": "secondary",
+        "displayName": "High Amber",
+        "canonical": "oklch(0.78 0.14 75)",
+        "tonalRamp": ["oklch(0.22 0.14 75)", "oklch(0.32 0.14 75)", "oklch(0.42 0.14 75)", "oklch(0.54 0.14 75)", "oklch(0.66 0.14 75)", "oklch(0.76 0.14 75)", "oklch(0.86 0.14 75)", "oklch(0.94 0.14 75)"]
+      },
+      "high-amber-ink": {
+        "role": "secondary",
+        "displayName": "High Amber Ink",
+        "canonical": "oklch(0.42 0.1 55)",
+        "tonalRamp": ["oklch(0.18 0.1 55)", "oklch(0.28 0.1 55)", "oklch(0.38 0.1 55)", "oklch(0.48 0.1 55)", "oklch(0.60 0.1 55)", "oklch(0.72 0.1 55)", "oklch(0.84 0.1 55)", "oklch(0.94 0.1 55)"]
+      },
+      "alert-coral": {
+        "role": "tertiary",
+        "displayName": "Alert Coral",
+        "canonical": "oklch(0.65 0.18 25)",
+        "tonalRamp": ["oklch(0.22 0.18 25)", "oklch(0.32 0.18 25)", "oklch(0.42 0.18 25)", "oklch(0.52 0.18 25)", "oklch(0.64 0.18 25)", "oklch(0.74 0.18 25)", "oklch(0.84 0.18 25)", "oklch(0.94 0.18 25)"]
+      },
+      "alert-coral-ink": {
+        "role": "tertiary",
+        "displayName": "Alert Coral Ink",
+        "canonical": "oklch(0.42 0.14 25)",
+        "tonalRamp": ["oklch(0.18 0.14 25)", "oklch(0.28 0.14 25)", "oklch(0.38 0.14 25)", "oklch(0.48 0.14 25)", "oklch(0.60 0.14 25)", "oklch(0.72 0.14 25)", "oklch(0.84 0.14 25)", "oklch(0.94 0.14 25)"]
+      },
+      "low-blue": {
+        "role": "tertiary",
+        "displayName": "Low Blue",
+        "canonical": "oklch(0.68 0.1 230)",
+        "tonalRamp": ["oklch(0.22 0.1 230)", "oklch(0.32 0.1 230)", "oklch(0.42 0.1 230)", "oklch(0.52 0.1 230)", "oklch(0.64 0.1 230)", "oklch(0.74 0.1 230)", "oklch(0.84 0.1 230)", "oklch(0.94 0.1 230)"]
+      },
+      "low-blue-ink": {
+        "role": "tertiary",
+        "displayName": "Low Blue Ink",
+        "canonical": "oklch(0.38 0.08 230)",
+        "tonalRamp": ["oklch(0.18 0.08 230)", "oklch(0.28 0.08 230)", "oklch(0.38 0.08 230)", "oklch(0.48 0.08 230)", "oklch(0.60 0.08 230)", "oklch(0.72 0.08 230)", "oklch(0.84 0.08 230)", "oklch(0.94 0.08 230)"]
+      },
+      "destructive-red": {
+        "role": "tertiary",
+        "displayName": "Destructive Red",
+        "canonical": "oklch(0.577 0.245 27.325)",
+        "tonalRamp": ["oklch(0.22 0.245 27.325)", "oklch(0.32 0.245 27.325)", "oklch(0.42 0.245 27.325)", "oklch(0.52 0.245 27.325)", "oklch(0.62 0.245 27.325)", "oklch(0.72 0.245 27.325)", "oklch(0.82 0.245 27.325)", "oklch(0.92 0.245 27.325)"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "The glucose value being entered or read. Nothing else uses this size." },
+      "headline": { "displayName": "Headline", "purpose": "The page title." },
+      "title": { "displayName": "Title", "purpose": "A section title, an invite code, or the wordmark." },
+      "body": { "displayName": "Body", "purpose": "Dates, meal lines, helper copy, buttons, and chips." },
+      "label": { "displayName": "Label", "purpose": "Bottom navigation." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "color", "value": "150ms ease", "purpose": "Hover and focus color shifts on buttons, chips, and fields." },
+      { "name": "press", "value": "translateY(1px)", "purpose": "A button drops one pixel while pressed." }
+    ],
+    "breakpoints": [
+      { "name": "md", "value": "768px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The compact action. Muted Teal, 32px tall.",
+      "html": "<button class=\"ds-btn-primary\">Enregistrer</button>",
+      "css": ".ds-btn-primary { background: var(--primary); color: var(--primary-foreground); height: 32px; padding: 0 10px; border: none; border-radius: var(--radius); font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background-color 150ms ease, transform 150ms ease; } .ds-btn-primary:hover { background: color-mix(in oklch, var(--primary) 80%, transparent); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 50%, transparent); } .ds-btn-primary:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Add Reading Button",
+      "kind": "button",
+      "refersTo": "button-add",
+      "description": "The full-width action that starts a reading. 56px, wider corners.",
+      "html": "<button class=\"ds-btn-add\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg>Ajouter une glycémie</button>",
+      "css": ".ds-btn-add { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; background: var(--primary); color: var(--primary-foreground); height: 56px; padding: 0 16px; border: none; border-radius: 1rem; font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 150ms ease, transform 150ms ease; } .ds-btn-add:hover { background: color-mix(in oklch, var(--primary) 80%, transparent); } .ds-btn-add:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 50%, transparent); } .ds-btn-add:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "A quiet alternate action on the cream page.",
+      "html": "<button class=\"ds-btn-outline\">Annuler</button>",
+      "css": ".ds-btn-outline { background: var(--background); color: var(--foreground); height: 32px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius); font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background-color 150ms ease, transform 150ms ease; } .ds-btn-outline:hover { background: var(--muted); } .ds-btn-outline:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 50%, transparent); } .ds-btn-outline:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Destructive Button",
+      "kind": "button",
+      "refersTo": "button-destructive",
+      "description": "Archive. A red tint, not a glucose band.",
+      "html": "<button class=\"ds-btn-destructive\">Archiver</button>",
+      "css": ".ds-btn-destructive { background: color-mix(in oklch, var(--destructive) 10%, transparent); color: var(--destructive); height: 32px; padding: 0 10px; border: none; border-radius: var(--radius); font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background-color 150ms ease, transform 150ms ease; } .ds-btn-destructive:hover { background: color-mix(in oklch, var(--destructive) 20%, transparent); } .ds-btn-destructive:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklch, var(--destructive) 20%, transparent); } .ds-btn-destructive:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "A quiet stroke on the paper. The glucose value field is the exception and has no chrome.",
+      "html": "<input class=\"ds-input\" placeholder=\"Note\">",
+      "css": ".ds-input { box-sizing: border-box; width: 100%; height: 32px; padding: 4px 10px; border: 1px solid var(--input); border-radius: var(--radius); background: transparent; color: var(--foreground); font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; transition: border-color 150ms ease, box-shadow 150ms ease; } .ds-input::placeholder { color: var(--muted-foreground); } .ds-input:focus-visible { outline: none; border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 50%, transparent); }"
+    },
+    {
+      "name": "Meal Chip",
+      "kind": "chip",
+      "refersTo": "chip-selected",
+      "description": "A meal or range choice. Selected is Muted Teal. Idle is Card Cream.",
+      "html": "<button class=\"ds-chip ds-chip-selected\">Avant</button><button class=\"ds-chip\">Après</button>",
+      "css": ".ds-chip { border: 1px solid var(--border); background: var(--card); color: var(--foreground); border-radius: 9999px; padding: 8px 12px; font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease; } .ds-chip:hover { background: var(--muted); } .ds-chip-selected, .ds-chip-selected:hover { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }"
+    },
+    {
+      "name": "Reading Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "A meal group on the page. Lighter cream, hairline ring, no shadow.",
+      "html": "<article class=\"ds-card\"><p class=\"ds-card-kicker\">Petit-déjeuner</p><p class=\"ds-card-value\">1,26</p></article>",
+      "css": ".ds-card { background: var(--card); color: var(--foreground); border-radius: 1rem; padding: 16px; box-shadow: 0 0 0 1px color-mix(in oklch, var(--foreground) 10%, transparent); } .ds-card-kicker { margin: 0 0 8px; font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; color: var(--muted-foreground); } .ds-card-value { margin: 0; font-family: var(--font-fraunces), ui-serif, Georgia, serif; font-size: 1.5rem; letter-spacing: -0.025em; }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "chip-idle",
+      "description": "The four glucose bands as tinted pills. No fifth status color.",
+      "html": "<span class=\"ds-status ds-status-in\">Dans la cible</span><span class=\"ds-status ds-status-high\">Haut</span><span class=\"ds-status ds-status-alert\">Très haut</span><span class=\"ds-status ds-status-low\">Bas</span>",
+      "css": ".ds-status { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border-radius: 9999px; font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; font-weight: 500; } .ds-status-in { background: color-mix(in oklch, var(--status-in) 15%, transparent); color: var(--status-in-fg); } .ds-status-high { background: color-mix(in oklch, var(--status-high) 18%, transparent); color: var(--status-high-fg); } .ds-status-alert { background: color-mix(in oklch, var(--status-alert) 15%, transparent); color: var(--status-alert-fg); } .ds-status-low { background: color-mix(in oklch, var(--status-low) 15%, transparent); color: var(--status-low-fg); }"
+    },
+    {
+      "name": "Bottom Navigation",
+      "kind": "nav",
+      "refersTo": "button-ghost",
+      "description": "Four tabs. Active is Muted Teal. The bar hides on a single-task flow.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-link ds-nav-link-active\">Aujourd’hui</a><a class=\"ds-nav-link\">Historique</a><a class=\"ds-nav-link\">Graphique</a><a class=\"ds-nav-link\">Réglages</a></nav>",
+      "css": ".ds-nav { display: grid; grid-template-columns: repeat(4, 1fr); background: color-mix(in oklch, var(--background) 95%, transparent); border-top: 1px solid var(--border); padding: 6px 8px; } .ds-nav-link { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 8px; border-radius: 12px; color: var(--muted-foreground); font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif; font-size: 0.6875rem; font-weight: 500; text-decoration: none; } .ds-nav-link:hover { color: var(--foreground); } .ds-nav-link-active, .ds-nav-link-active:hover { color: var(--primary); }"
+    },
+    {
+      "name": "Wordmark",
+      "kind": "custom",
+      "refersTo": "button-primary",
+      "description": "The name beside a teal droplet tile. The tile is the only glow.",
+      "html": "<div class=\"ds-logo\"><span class=\"ds-logo-mark\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3s6 6.2 6 10.2a6 6 0 0 1-12 0C6 9.2 12 3 12 3z\"/></svg></span><span class=\"ds-logo-name\">Gluciel</span></div>",
+      "css": ".ds-logo { display: inline-flex; align-items: center; gap: 8px; } .ds-logo-mark { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 1rem; background: var(--primary); color: var(--primary-foreground); box-shadow: 0 0 18px color-mix(in oklch, var(--primary), transparent 55%); } .ds-logo-name { font-family: var(--font-fraunces), ui-serif, Georgia, serif; font-size: 1.25rem; letter-spacing: -0.025em; color: var(--foreground); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Kitchen Carnet",
+    "overview": "Gluciel looks like a paper notebook left on the kitchen table between meals. The page is Cream, the words are Warm Brown, and the only ink that asks for a tap is Muted Teal. Fraunces carries the glucose number and the page title. Outfit carries everything you scan. The mood is warm, quiet, and domestic: paper and ink, not a clinic.\n\nDensity stays low. One column, about a phone wide, centered on every viewport. The reading is the loudest thing on the page. Controls are quiet and sure, and they feel pressable: a color shift on hover, a one-pixel drop on press. Saturated color is reserved for the four glucose bands.\n\nThe system refuses clinic dashboards, neon continuous-glucose apps, and purple wellness gradients. Light is the shipped theme.",
+    "keyCharacteristics": [
+      "A single cream column, never a dashboard grid",
+      "Fraunces for the number and the title, Outfit for the rest",
+      "Muted Teal for actions, four bands for glucose status",
+      "Tonal paper: lighter cards, hairline rings, no drop shadows",
+      "Quiet, sure, pressable controls"
+    ],
+    "rules": [
+      { "name": "The Band Rule", "body": "Saturated color belongs to the four glucose bands, or to Muted Teal when something can be tapped. The page stays Cream and Warm Brown. If a screen is mostly teal or mostly amber, it has broken the carnet.", "section": "colors" },
+      { "name": "The Light Rule", "body": "The shipped theme is light. A dark token block exists in the stylesheet and the app forces light. Do not design a screen against the dark block.", "section": "colors" },
+      { "name": "The Number Rule", "body": "The glucose value is Fraunces at display size, and it is the loudest thing on the page. A button, a chip, or a badge does not outrank it.", "section": "typography" },
+      { "name": "The Serif Rarity Rule", "body": "Fraunces is for the value, the page title, the section title, and the wordmark. Outfit sets every repeated label, list row, and control.", "section": "typography" },
+      { "name": "The One Column Rule", "body": "A new screen is a single 32rem column with 16px of side padding. If a layout needs a sidebar, a data table across the viewport, or a multi-column dashboard, it is not this carnet.", "section": "layout" },
+      { "name": "The Paper Rule", "body": "Surfaces do not cast shadows. Depth is a lighter card on Cream, plus a hairline ring. The logo mark is the only glow.", "section": "elevation" },
+      { "name": "The Soft Corner Rule", "body": "A control is 0.9rem. A card is 1rem, or 1.5rem when it holds a chart. A status or a meal choice is a pill. Do not introduce a sharp corner or a new radius step.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do keep every screen a single 32rem column with 16px of side padding.",
+      "Do set the glucose value in Fraunces at 3.75rem, and page titles in Fraunces at 1.875rem.",
+      "Do use Muted Teal for what can be tapped, and the four bands only for glucose status.",
+      "Do separate cards from the page by a lighter cream and a hairline ring of Warm Brown at 10%.",
+      "Do keep archive and invalid fields on Destructive Red, distinct from Alert Coral."
+    ],
+    "donts": [
+      "Don't add a drop shadow to a card, a button, or a sheet. The logo tile is the only glow.",
+      "Don't use clinic-dashboard chrome, neon continuous-glucose styling, or a purple wellness gradient.",
+      "Don't let a control, a chip, or a badge outrank the glucose number.",
+      "Don't design against the unused dark tokens. The app forces light.",
+      "Don't reach for the unused chart or sidebar tokens in the stylesheet. The graph draws with In-range Green and High Amber."
+    ]
+  }
+}

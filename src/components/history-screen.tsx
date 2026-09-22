@@ -1,13 +1,22 @@
 "use client";
 
+import { useState } from "react";
+import { size, take } from "lodash";
+
 import { AppHeader } from "@/components/app-header";
 import { Disclaimer } from "@/components/disclaimer";
+import { LoadingStatus } from "@/components/loading-status";
 import { useReadings } from "@/components/readings-provider";
 import { ReadingsList } from "@/components/readings-table";
+import { Button } from "@/components/ui/button";
+import { HISTORY_PAGE_SIZE } from "../../packages/core/src/constants";
 import { t } from "@/lib/i18n";
 
 export function HistoryScreen() {
   const { readings, ready } = useReadings();
+  const [visibleCount, setVisibleCount] = useState(HISTORY_PAGE_SIZE);
+  const visible = take(readings, visibleCount);
+  const hidden = size(readings) - size(visible);
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pb-8">
@@ -16,13 +25,30 @@ export function HistoryScreen() {
         {t("history.title")}
       </h1>
       {!ready ? (
-        <div className="h-40 animate-pulse rounded-3xl bg-muted" />
+        <LoadingStatus>
+          <div className="h-40 animate-pulse rounded-3xl bg-muted" />
+        </LoadingStatus>
       ) : (
-        <ReadingsList
-          readings={readings}
-          emptyTitle={t("history.emptyTitle")}
-          emptyBody={t("history.emptyBody")}
-        />
+        <>
+          <ReadingsList
+            readings={visible}
+            emptyTitle={t("history.emptyTitle")}
+            emptyBody={t("history.emptyBody")}
+            emptyAction={{ href: "/ajouter", label: t("home.addReading") }}
+          />
+          {hidden > 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-4 h-11 w-full rounded-2xl"
+              onClick={() =>
+                setVisibleCount((count) => count + HISTORY_PAGE_SIZE)
+              }
+            >
+              {t("history.loadMore")}
+            </Button>
+          ) : null}
+        </>
       )}
       <Disclaimer className="mt-8 text-center text-xs leading-relaxed text-muted-foreground" />
     </div>

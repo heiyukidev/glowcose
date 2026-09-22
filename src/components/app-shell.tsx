@@ -5,6 +5,7 @@ import { useEffect, type ReactNode } from "react";
 import { includes } from "lodash";
 
 import { BottomNav } from "@/components/bottom-nav";
+import { LoadingStatus } from "@/components/loading-status";
 import { useSettings } from "@/components/settings-provider";
 
 const OPEN_PATHS = ["/onboarding", "/connexion", "/rejoindre"];
@@ -27,11 +28,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 py-8">
+      <LoadingStatus className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 py-8">
         <div className="h-10 w-40 animate-pulse rounded-xl bg-muted" />
         <div className="h-14 animate-pulse rounded-2xl bg-muted" />
         <div className="h-52 animate-pulse rounded-3xl bg-muted" />
-      </div>
+      </LoadingStatus>
     );
   }
 

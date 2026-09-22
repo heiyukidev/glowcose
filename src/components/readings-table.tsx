@@ -4,6 +4,8 @@ import { format } from "date-fns";
 import { compact, filter, get, groupBy, keys, map, orderBy, size } from "lodash";
 import Link from "next/link";
 
+import { Button } from "@/components/ui/button";
+
 import { StatusBadge, StatusDot } from "@/components/status-badge";
 import { useSettings } from "@/components/settings-provider";
 import {
@@ -32,11 +34,13 @@ export function ReadingsList({
   readings,
   emptyTitle,
   emptyBody,
+  emptyAction,
   byMeal = false,
 }: {
   readings: Reading[];
   emptyTitle: string;
   emptyBody: string;
+  emptyAction?: { href: string; label: string };
   byMeal?: boolean;
 }) {
   const { settings } = useSettings();
@@ -44,8 +48,17 @@ export function ReadingsList({
   if (size(readings) === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border bg-card px-4 py-10 text-center">
-        <p className="font-medium">{emptyTitle}</p>
-        <p className="mt-1 text-sm text-muted-foreground">{emptyBody}</p>
+        <p className="font-medium text-balance">{emptyTitle}</p>
+        <p className="mt-1 text-sm text-pretty text-muted-foreground">{emptyBody}</p>
+        {emptyAction ? (
+          <Button
+            nativeButton={false}
+            className="mt-4 h-11 rounded-2xl px-5"
+            render={<Link href={emptyAction.href} />}
+          >
+            {emptyAction.label}
+          </Button>
+        ) : null}
       </div>
     );
   }
@@ -159,7 +172,7 @@ function MealSections({ readings }: { readings: Reading[] }) {
                 {section.label}
               </h3>
               {section.note ? (
-                <p className="mt-1 whitespace-pre-line text-sm text-muted-foreground">
+                <p className="mt-1 line-clamp-4 wrap-break-word whitespace-pre-line text-sm text-muted-foreground">
                   {section.note}
                 </p>
               ) : null}

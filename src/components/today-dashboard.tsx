@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 
 import { AppHeader } from "@/components/app-header";
+import { LoadingStatus } from "@/components/loading-status";
 import { Disclaimer } from "@/components/disclaimer";
 import { useCarnet } from "@/components/carnet-provider";
 import { useReadings } from "@/components/readings-provider";
@@ -63,10 +64,10 @@ export function TodayDashboard() {
       </Button>
 
       {!ready ? (
-        <div className="space-y-4">
+        <LoadingStatus className="space-y-4">
           <div className="h-24 animate-pulse rounded-3xl bg-muted" />
           <div className="h-40 animate-pulse rounded-3xl bg-muted" />
-        </div>
+        </LoadingStatus>
       ) : (
         <>
           <p className="mb-3 px-1 text-sm text-muted-foreground">

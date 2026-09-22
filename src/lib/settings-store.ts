@@ -2,6 +2,8 @@ import { cloneDeep } from "lodash";
 
 import {
   DEFAULT_SETTINGS,
+  isOrderedPreset,
+  resolvedThresholds,
   THRESHOLD_PRESETS,
   type AppSettings,
   type DiabetesType,
@@ -67,11 +69,10 @@ function readFromStorage(): AppSettings {
       diabetesType: parsed.diabetesType ?? "gestational",
       unit: parsed.unit ?? "gL",
       onboarded: Boolean(parsed.onboarded),
-      thresholds: parsed.thresholds
-        ? parsed.thresholds
-        : cloneDeep(
-            THRESHOLD_PRESETS[parsed.diabetesType ?? "gestational"],
-          ),
+      thresholds: resolvedThresholds(
+        parsed.diabetesType ?? "gestational",
+        parsed.thresholds,
+      ),
     };
   } catch {
     return cloneDeep(DEFAULT_SETTINGS);
@@ -134,6 +135,7 @@ export function updateDiabetesType(diabetesType: DiabetesType): void {
 }
 
 export function updateThresholds(thresholds: ThresholdPreset): void {
+  if (!isOrderedPreset(thresholds)) return;
   saveSettings({ ...getSettingsSnapshot(), thresholds });
   syncCarnetSettings({ thresholds });
 }

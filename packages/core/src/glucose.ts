@@ -1,4 +1,4 @@
-import { cloneDeep, get, includes } from "lodash";
+import { cloneDeep, every, get, includes, trim } from "lodash";
 
 export const DIABETES_TYPES = [
   "gestational",
@@ -149,6 +149,83 @@ export const THRESHOLD_PRESETS: Record<DiabetesType, ThresholdPreset> = {
   type2: ADULT_THRESHOLDS,
   other: ADULT_THRESHOLDS,
 };
+
+export const MAX_NOTE_LENGTH = 500;
+export const MIN_READING_MGDL = 20;
+export const MAX_READING_MGDL = 600;
+export const MIN_THRESHOLD_MGDL = 40;
+export const MAX_THRESHOLD_MGDL = 400;
+
+export function isOrderedBand(band: BandThresholds): boolean {
+  return (
+    Number.isInteger(band.hypoBelow) &&
+    Number.isInteger(band.greenMax) &&
+    Number.isInteger(band.orangeMax) &&
+    band.hypoBelow >= MIN_THRESHOLD_MGDL &&
+    band.orangeMax <= MAX_THRESHOLD_MGDL &&
+    band.hypoBelow < band.greenMax &&
+    band.greenMax < band.orangeMax
+  );
+}
+
+export function isOrderedPreset(preset: ThresholdPreset): boolean {
+  return every(
+    [preset.beforeMeal, preset.after1h, preset.after2h, preset.other],
+    isOrderedBand,
+  );
+}
+
+export function resolvedThresholds(
+  diabetesType: DiabetesType,
+  thresholds: ThresholdPreset | undefined,
+): ThresholdPreset {
+  if (thresholds && isOrderedPreset(thresholds)) {
+    return thresholds;
+  }
+  return cloneDeep(get(THRESHOLD_PRESETS, diabetesType));
+}
+
+export function bandFromDraft(draft: {
+  hypoBelow: string;
+  greenMax: string;
+  orangeMax: string;
+}): BandThresholds | null {
+  const band: BandThresholds = {
+    hypoBelow: Number(trim(draft.hypoBelow)),
+    greenMax: Number(trim(draft.greenMax)),
+    orangeMax: Number(trim(draft.orangeMax)),
+  };
+  return isOrderedBand(band) ? band : null;
+}
+
+export function clampNote(note: string | undefined): string | undefined {
+  const text = trim(note ?? "");
+  if (text === "") return undefined;
+  return text.slice(0, MAX_NOTE_LENGTH);
+}
+
+export function assertSavableReading(input: {
+  valueMgDl: number;
+  takenAt: number;
+}): void {
+  if (
+    !Number.isFinite(input.valueMgDl) ||
+    input.valueMgDl < MIN_READING_MGDL ||
+    input.valueMgDl > MAX_READING_MGDL ||
+    !Number.isFinite(input.takenAt)
+  ) {
+    throw new Error("Mesure invalide");
+  }
+}
+
+export function glucoseInputBounds(unit: GlucoseUnit): {
+  min: string;
+  max: string;
+} {
+  if (unit === "gL") return { min: "0,20 g/L", max: "6 g/L" };
+  if (unit === "mmol") return { min: "1 mmol/L", max: "33 mmol/L" };
+  return { min: "20 mg/dL", max: "600 mg/dL" };
+}
 
 export const DEFAULT_SETTINGS: AppSettings = {
   diabetesType: "gestational",
