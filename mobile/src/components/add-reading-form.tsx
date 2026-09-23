@@ -77,11 +77,17 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
     ? { note: initial.note ?? "", photos: photosFromLegacy(initial) }
     : mealMediaForForm(readings, defaultContext, defaultTakenAt);
   const [note, setNote] = useState(openingMedia.note ?? "");
-  const [photos, setPhotos] = useState(() =>
+  const [photos, setPhotos] = useState<
+    {
+      url: string;
+      storageId?: string;
+      localUri?: string;
+      mimeType?: string;
+    }[]
+  >(() =>
     map(openingMedia.photos, (photo) => ({
       url: photo.url ?? "",
       storageId: photo.storageId,
-      localUri: photo.url,
     })),
   );
   const [saving, setSaving] = useState(false);
@@ -96,7 +102,6 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
         map(photosFromLegacy(initial), (photo) => ({
           url: photo.url ?? "",
           storageId: photo.storageId,
-          localUri: photo.url,
         })),
       );
     } else {
@@ -106,7 +111,6 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
         map(media.photos, (photo) => ({
           url: photo.url ?? "",
           storageId: photo.storageId,
-          localUri: photo.url,
         })),
       );
     }
@@ -121,14 +125,19 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
   const band = thresholdsForContext(context, offset, settings.thresholds);
 
   async function appendAssets(
-    assets: { uri?: string }[] | undefined,
+    assets: { uri?: string; mimeType?: string }[] | undefined,
   ) {
     const remaining = MAX_MEAL_PHOTOS - size(photos);
     const selected = take(assets ?? [], remaining);
     const next = compact(
       map(selected, (asset) =>
         asset.uri
-          ? { url: asset.uri, localUri: asset.uri, storageId: undefined }
+          ? {
+              url: asset.uri,
+              localUri: asset.uri,
+              mimeType: asset.mimeType,
+              storageId: undefined,
+            }
           : undefined,
       ),
     );
@@ -207,12 +216,10 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
         map(photos, async (photo) => {
           if (photo.localUri && !photo.storageId) {
             if (uploadPhoto) {
-              const response = await fetch(photo.localUri);
-              if (!response.ok) {
-                throw new Error("Photo unreadable");
-              }
-              const blob = await response.blob();
-              const storageId = await uploadPhoto(blob);
+              const storageId = await uploadPhoto({
+                uri: photo.localUri,
+                mimeType: photo.mimeType,
+              });
               return { storageId };
             }
             return { url: photo.localUri };
