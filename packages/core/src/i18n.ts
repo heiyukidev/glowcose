@@ -55,6 +55,10 @@ const FRENCH_MESSAGES = {
   "home.emptyTitle": "Rien pour aujourd’hui",
   "home.emptyBody":
     "Ajoutez la première glycémie du jour — cela prend moins de 10 secondes.",
+  "meal.photos": "Photos",
+  "meal.addBefore": "Ajouter avant le repas",
+  "meal.addAfter": "Ajouter après le repas",
+  "meal.emptyValue": "—",
   "history.title": "Historique",
   "history.emptyTitle": "Aucune glycémie",
   "history.emptyBody": "Les mesures apparaîtront ici, regroupées par jour.",

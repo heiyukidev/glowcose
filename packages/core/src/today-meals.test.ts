@@ -2,7 +2,13 @@ import { map } from "lodash";
 import { describe, expect, test } from "vitest";
 
 import type { Reading } from "./glucose";
-import { groupReadingsByMeal } from "./meal";
+import {
+  contextForMealSide,
+  groupReadingsByMeal,
+  pickAfterReading,
+  pickBeforeReading,
+  todayMealCards,
+} from "./meal";
 
 function reading(
   overrides: Partial<Reading> & Pick<Reading, "_id" | "takenAt" | "context">,
@@ -196,5 +202,113 @@ describe("groupReadingsByMeal", () => {
         readings: [before, after],
       },
     ]);
+  });
+});
+
+describe("todayMealCards", () => {
+  test("shows three empty shells when there are no Readings", () => {
+    expect(todayMealCards([])).toEqual({
+      meals: [
+        {
+          id: "shell:breakfast",
+          slot: "breakfast",
+          label: "Petit-déjeuner",
+          photos: [],
+          isShell: true,
+        },
+        {
+          id: "shell:lunch",
+          slot: "lunch",
+          label: "Déjeuner",
+          photos: [],
+          isShell: true,
+        },
+        {
+          id: "shell:dinner",
+          slot: "dinner",
+          label: "Dîner",
+          photos: [],
+          isShell: true,
+        },
+      ],
+      extras: [],
+    });
+  });
+
+  test("fills named shells and keeps Autre as an extra", () => {
+    const lunchBefore = reading({
+      _id: "lb",
+      mealId: "lunch-1",
+      context: "before_lunch",
+      takenAt: Date.parse("2026-09-23T12:00:00+02:00"),
+      valueMgDl: 88,
+      note: "salade",
+    });
+    const lunchAfter1 = reading({
+      _id: "la1",
+      mealId: "lunch-1",
+      context: "after_lunch",
+      postMealOffset: 1,
+      takenAt: Date.parse("2026-09-23T13:00:00+02:00"),
+      valueMgDl: 150,
+    });
+    const lunchAfter2 = reading({
+      _id: "la2",
+      mealId: "lunch-1",
+      context: "after_lunch",
+      postMealOffset: 2,
+      takenAt: Date.parse("2026-09-23T14:00:00+02:00"),
+      valueMgDl: 135,
+    });
+    const other = reading({
+      _id: "o",
+      mealId: "other-1",
+      context: "other",
+      takenAt: Date.parse("2026-09-23T16:00:00+02:00"),
+      valueMgDl: 110,
+    });
+
+    const { meals, extras } = todayMealCards([
+      lunchAfter1,
+      other,
+      lunchAfter2,
+      lunchBefore,
+    ]);
+
+    expect(map(meals, "slot")).toEqual(["breakfast", "lunch", "dinner"]);
+    expect(meals[0]?.isShell).toBe(true);
+    expect(meals[1]).toMatchObject({
+      id: "lunch-1",
+      slot: "lunch",
+      note: "salade",
+      isShell: false,
+      before: lunchBefore,
+      after: lunchAfter2,
+    });
+    expect(meals[2]?.isShell).toBe(true);
+    expect(map(extras, "id")).toEqual(["other-1"]);
+  });
+
+  test("maps meal side to Reading context", () => {
+    expect(contextForMealSide("lunch", "before")).toBe("before_lunch");
+    expect(contextForMealSide("lunch", "after")).toBe("after_lunch");
+    expect(contextForMealSide("dinner", "after")).toBe("after_dinner");
+  });
+
+  test("pickAfterReading prefers 2h over 1h", () => {
+    const at1 = reading({
+      _id: "1",
+      context: "after_lunch",
+      postMealOffset: 1,
+      takenAt: 1,
+    });
+    const at2 = reading({
+      _id: "2",
+      context: "after_lunch",
+      postMealOffset: 2,
+      takenAt: 2,
+    });
+    expect(pickAfterReading([at1, at2])?._id).toBe("2");
+    expect(pickBeforeReading([at1, at2])).toBeUndefined();
   });
 });

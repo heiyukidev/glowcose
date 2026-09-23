@@ -117,14 +117,22 @@ type FormPhoto = {
   storageId?: string;
 };
 
-export function AddReadingForm({ initial }: { initial?: Reading }) {
+export function AddReadingForm({
+  initial,
+  presetContext,
+}: {
+  initial?: Reading;
+  /** Prefill context when opening from a meal card (add only). */
+  presetContext?: ReadingContext;
+}) {
   const router = useRouter();
   const { addReading, updateReading, archiveReading, uploadPhoto, readings } =
     useReadings();
   const { settings, setUnit } = useSettings();
   const now = useMemo(() => new Date(), []);
   const defaultTakenAt = initial?.takenAt ?? now.getTime();
-  const defaultContext = initial?.context ?? defaultContextForTime(now);
+  const defaultContext =
+    initial?.context ?? presetContext ?? defaultContextForTime(now);
   const [rawValue, setRawValue] = useState(() =>
     initial ? formatInputValue(initial.valueMgDl, settings.unit) : "",
   );

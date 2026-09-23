@@ -5,7 +5,6 @@ import {
   get,
   groupBy,
   keys,
-  last,
   map,
   orderBy,
   size,
@@ -19,11 +18,12 @@ import {
   formatPrimary,
   formatSecondary,
   formatTime,
-  groupReadingsByMeal,
   momentLabel,
   readingStatus,
+  todayMealCards,
   type Reading,
 } from "@glowcose/core";
+import { MealCard } from "@/components/meal-card";
 import { StatusBadge, StatusDot } from "@/components/status-badge";
 import { Button } from "@/components/ui";
 import { useSettings } from "@/providers/settings-provider";
@@ -53,6 +53,10 @@ export function ReadingsList({
   const router = useRouter();
   const { settings } = useSettings();
 
+  if (byMeal) {
+    return <MealDayCards readings={readings} />;
+  }
+
   if (size(readings) === 0) {
     return (
       <View style={styles.empty}>
@@ -67,10 +71,6 @@ export function ReadingsList({
         ) : null}
       </View>
     );
-  }
-
-  if (byMeal) {
-    return <MealSections readings={readings} />;
   }
 
   const grouped = groupBy(readings, (reading) =>
@@ -137,16 +137,18 @@ export function ReadingsList({
   );
 }
 
-function MealSections({ readings }: { readings: Reading[] }) {
+function MealDayCards({ readings }: { readings: Reading[] }) {
   const router = useRouter();
   const { settings } = useSettings();
-  const sections = groupReadingsByMeal(readings);
+  const { meals, extras } = todayMealCards(readings);
 
   return (
     <View style={styles.stack}>
-      {map(sections, (section) => {
+      {map(meals, (meal) => (
+        <MealCard key={meal.id} meal={meal} />
+      ))}
+      {map(extras, (section) => {
         const urls = compact(map(section.photos, (photo) => photo.url));
-        const lastId = last(section.readings)?._id;
         return (
           <View key={section.id} style={styles.meal}>
             <View style={styles.mealHead}>
@@ -158,9 +160,9 @@ function MealSections({ readings }: { readings: Reading[] }) {
               ) : null}
               {size(urls) > 0 ? (
                 <View style={styles.photos}>
-                  {map(urls, (url) => (
+                  {map(urls, (url, index) => (
                     <Image
-                      key={url}
+                      key={`${section.id}-photo-${index}`}
                       source={{ uri: url }}
                       style={styles.photo}
                       accessibilityLabel={`Photo du ${section.label}`}
@@ -169,21 +171,19 @@ function MealSections({ readings }: { readings: Reading[] }) {
                 </View>
               ) : null}
             </View>
-            {map(section.readings, (reading) => {
+            {map(section.readings, (reading, index) => {
               const status = readingStatus(
                 reading.valueMgDl,
                 reading.context,
                 reading.postMealOffset,
                 settings.thresholds,
               );
+              const isLast = index === size(section.readings) - 1;
               return (
                 <Pressable
                   key={reading._id}
                   onPress={() => router.push(`/mesure/${reading._id}`)}
-                  style={[
-                    styles.row,
-                    reading._id === lastId ? styles.rowLast : null,
-                  ]}
+                  style={[styles.row, isLast ? styles.rowLast : null]}
                 >
                   <StatusDot status={status} />
                   <View style={styles.rowMain}>
