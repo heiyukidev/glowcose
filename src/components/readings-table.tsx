@@ -6,6 +6,10 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { MealCard } from "@/components/meal-card";
+import {
+  PhotoViewer,
+  useMealPhotoViewer,
+} from "@/components/photo-viewer";
 import { StatusBadge, StatusDot } from "@/components/status-badge";
 import { useSettings } from "@/components/settings-provider";
 import {
@@ -29,6 +33,7 @@ import {
   type Reading,
 } from "@/lib/glucose";
 import { todayMealCards } from "@/lib/meal";
+import { t } from "@/lib/i18n";
 
 export function ReadingsList({
   readings,
@@ -157,6 +162,7 @@ export function ReadingsList({
 function MealDayCards({ readings }: { readings: Reading[] }) {
   const { settings } = useSettings();
   const { meals, extras } = todayMealCards(readings);
+  const photos = useMealPhotoViewer();
 
   return (
     <div className="space-y-5">
@@ -182,13 +188,20 @@ function MealDayCards({ readings }: { readings: Reading[] }) {
               {size(urls) > 0 ? (
                 <div className="mt-3 flex gap-2">
                   {map(urls, (url, index) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <button
                       key={`${section.id}-photo-${index}`}
-                      src={url}
-                      alt={`Photo du ${section.label}`}
-                      className="size-16 rounded-lg object-cover"
-                    />
+                      type="button"
+                      className="size-16 overflow-hidden rounded-lg"
+                      aria-label={t("photo.open")}
+                      onClick={() => photos.show(urls, index)}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={url}
+                        alt=""
+                        className="size-full object-cover"
+                      />
+                    </button>
                   ))}
                 </div>
               ) : null}
@@ -236,6 +249,11 @@ function MealDayCards({ readings }: { readings: Reading[] }) {
           </section>
         );
       })}
+      <PhotoViewer
+        open={photos.open}
+        onClose={photos.close}
+        onStep={photos.step}
+      />
     </div>
   );
 }

@@ -10,9 +10,13 @@ import {
   type FormEvent,
 } from "react";
 import { toast } from "sonner";
-import { filter, get, map, size, take, trim } from "lodash";
+import { compact, filter, get, map, size, take, trim } from "lodash";
 
 import { Chip } from "@/components/chip";
+import {
+  PhotoViewer,
+  useMealPhotoViewer,
+} from "@/components/photo-viewer";
 import { useReadings } from "@/components/readings-provider";
 import { useSettings } from "@/components/settings-provider";
 import { StatusBadge } from "@/components/status-badge";
@@ -126,6 +130,7 @@ export function AddReadingForm({
   presetContext?: ReadingContext;
 }) {
   const router = useRouter();
+  const photosViewer = useMealPhotoViewer();
   const { addReading, updateReading, archiveReading, uploadPhoto, readings } =
     useReadings();
   const { settings, setUnit } = useSettings();
@@ -430,12 +435,27 @@ export function AddReadingForm({
           <div className="grid grid-cols-2 gap-2">
             {map(photos, (photo, index) => (
               <div key={`${photo.url}-${index}`} className="space-y-1">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={photo.url}
-                  alt={`Photo du repas ${index + 1}`}
-                  className="h-28 w-full rounded-xl object-cover"
-                />
+                {photo.url ? (
+                  <button
+                    type="button"
+                    className="block w-full"
+                    aria-label={t("photo.open")}
+                    onClick={() => {
+                      const urls = compact(map(photos, (item) => item.url));
+                      const startIndex = size(
+                        compact(map(take(photos, index), (item) => item.url)),
+                      );
+                      photosViewer.show(urls, startIndex);
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={photo.url}
+                      alt=""
+                      className="h-28 w-full rounded-xl object-cover"
+                    />
+                  </button>
+                ) : null}
                 <Button
                   type="button"
                   variant="ghost"
@@ -527,6 +547,11 @@ export function AddReadingForm({
           ) : null}
         </div>
       </div>
+      <PhotoViewer
+        open={photosViewer.open}
+        onClose={photosViewer.close}
+        onStep={photosViewer.step}
+      />
     </form>
   );
 }

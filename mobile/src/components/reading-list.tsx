@@ -20,10 +20,15 @@ import {
   formatTime,
   momentLabel,
   readingStatus,
+  t,
   todayMealCards,
   type Reading,
 } from "@glowcose/core";
 import { MealCard } from "@/components/meal-card";
+import {
+  PhotoViewer,
+  useMealPhotoViewer,
+} from "@/components/photo-viewer";
 import { StatusBadge, StatusDot } from "@/components/status-badge";
 import { Button } from "@/components/ui";
 import { useSettings } from "@/providers/settings-provider";
@@ -141,6 +146,7 @@ function MealDayCards({ readings }: { readings: Reading[] }) {
   const router = useRouter();
   const { settings } = useSettings();
   const { meals, extras } = todayMealCards(readings);
+  const photos = useMealPhotoViewer();
 
   return (
     <View style={styles.stack}>
@@ -161,12 +167,18 @@ function MealDayCards({ readings }: { readings: Reading[] }) {
               {size(urls) > 0 ? (
                 <View style={styles.photos}>
                   {map(urls, (url, index) => (
-                    <Image
+                    <Pressable
                       key={`${section.id}-photo-${index}`}
-                      source={{ uri: url }}
-                      style={styles.photo}
-                      accessibilityLabel={`Photo du ${section.label}`}
-                    />
+                      accessibilityRole="button"
+                      accessibilityLabel={t("photo.open")}
+                      onPress={() => photos.show(urls, index)}
+                    >
+                      <Image
+                        source={{ uri: url }}
+                        style={styles.photo}
+                        accessibilityElementsHidden
+                      />
+                    </Pressable>
                   ))}
                 </View>
               ) : null}
@@ -209,6 +221,11 @@ function MealDayCards({ readings }: { readings: Reading[] }) {
           </View>
         );
       })}
+      <PhotoViewer
+        open={photos.open}
+        onClose={photos.close}
+        onStep={photos.step}
+      />
     </View>
   );
 }

@@ -45,6 +45,10 @@ import {
   resolveUploadedMealPhotos,
 } from "@glowcose/core";
 import { Chip, Button } from "@/components/ui";
+import {
+  PhotoViewer,
+  useMealPhotoViewer,
+} from "@/components/photo-viewer";
 import { StatusBadge } from "@/components/status-badge";
 import { UnitToggle } from "@/components/unit-toggle";
 import { useReadings } from "@/providers/readings-provider";
@@ -67,6 +71,7 @@ export function AddReadingForm({
   presetContext?: ReadingContext;
 }) {
   const router = useRouter();
+  const photosViewer = useMealPhotoViewer();
   const { addReading, updateReading, archiveReading, uploadPhoto, readings } =
     useReadings();
   const { settings, setUnit } = useSettings();
@@ -392,7 +397,19 @@ export function AddReadingForm({
       {map(photos, (photo, index) => (
         <View key={`${photo.url}-${index}`} style={styles.photo}>
           {photo.url ? (
-            <Image source={{ uri: photo.url }} style={styles.photoImage} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("photo.open")}
+              onPress={() => {
+                const urls = compact(map(photos, (item) => item.url));
+                const startIndex = size(
+                  compact(map(take(photos, index), (item) => item.url)),
+                );
+                photosViewer.show(urls, startIndex);
+              }}
+            >
+              <Image source={{ uri: photo.url }} style={styles.photoImage} />
+            </Pressable>
           ) : null}
           <Button
             title="Retirer"
@@ -438,6 +455,11 @@ export function AddReadingForm({
           }}
         />
       ) : null}
+      <PhotoViewer
+        open={photosViewer.open}
+        onClose={photosViewer.close}
+        onStep={photosViewer.step}
+      />
     </View>
   );
 }

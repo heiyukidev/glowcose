@@ -15,6 +15,10 @@ import {
   type Reading,
   type ReadingStatus,
 } from "@glowcose/core";
+import {
+  PhotoViewer,
+  useMealPhotoViewer,
+} from "@/components/photo-viewer";
 import { useSettings } from "@/providers/settings-provider";
 import { colors, statusColors } from "@/theme";
 
@@ -117,6 +121,7 @@ function MealSideCell({
 export function MealCard({ meal }: { meal: MealCardModel }) {
   const urls = compact(map(meal.photos, (photo) => photo.url));
   const stack = take(urls, 3);
+  const photos = useMealPhotoViewer();
 
   return (
     <View style={styles.card}>
@@ -126,7 +131,12 @@ export function MealCard({ meal }: { meal: MealCardModel }) {
         <View style={styles.photosCol}>
           <Text style={styles.photosLabel}>{t("meal.photos")}</Text>
           {size(stack) > 0 ? (
-            <View style={styles.stack}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("photo.open")}
+              onPress={() => photos.show(urls, 0)}
+              style={styles.stack}
+            >
               {map(stack, (url, index) => (
                 <Image
                   key={`${meal.id}-photo-${index}`}
@@ -139,10 +149,10 @@ export function MealCard({ meal }: { meal: MealCardModel }) {
                       zIndex: 3 - index,
                     },
                   ]}
-                  accessibilityLabel={`Photo du ${meal.label}`}
+                  accessibilityElementsHidden
                 />
               ))}
-            </View>
+            </Pressable>
           ) : (
             <View style={styles.photoEmpty} accessibilityElementsHidden>
               <Images color={colors.muted} size={16} />
@@ -152,6 +162,11 @@ export function MealCard({ meal }: { meal: MealCardModel }) {
         <MealSideCell side="after" meal={meal} reading={meal.after} />
       </View>
       {meal.note ? <Text style={styles.note}>{meal.note}</Text> : null}
+      <PhotoViewer
+        open={photos.open}
+        onClose={photos.close}
+        onStep={photos.step}
+      />
     </View>
   );
 }

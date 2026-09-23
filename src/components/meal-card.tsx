@@ -1,9 +1,13 @@
 "use client";
 
-import { compact, map, size } from "lodash";
+import { compact, map, size, take } from "lodash";
 import { Images } from "lucide-react";
 import Link from "next/link";
 
+import {
+  PhotoViewer,
+  useMealPhotoViewer,
+} from "@/components/photo-viewer";
 import { useSettings } from "@/components/settings-provider";
 import {
   formatInputValue,
@@ -104,6 +108,7 @@ function MealSideCell({
 
 export function MealCard({ meal }: { meal: MealCardModel }) {
   const urls = compact(map(meal.photos, (photo) => photo.url));
+  const photos = useMealPhotoViewer();
 
   return (
     <article className="overflow-hidden rounded-2xl bg-card ring-1 ring-foreground/10">
@@ -117,8 +122,13 @@ export function MealCard({ meal }: { meal: MealCardModel }) {
             {t("meal.photos")}
           </span>
           {size(urls) > 0 ? (
-            <div className="relative size-10">
-              {map(urls.slice(0, 3), (url, index) => (
+            <button
+              type="button"
+              className="relative size-10"
+              aria-label={t("photo.open")}
+              onClick={() => photos.show(urls, 0)}
+            >
+              {map(take(urls, 3), (url, index) => (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   key={`${meal.id}-photo-${index}`}
@@ -132,7 +142,7 @@ export function MealCard({ meal }: { meal: MealCardModel }) {
                   }}
                 />
               ))}
-            </div>
+            </button>
           ) : (
             <span
               className="flex size-10 items-center justify-center rounded-md bg-muted/60 text-muted-foreground"
@@ -149,6 +159,11 @@ export function MealCard({ meal }: { meal: MealCardModel }) {
           {meal.note}
         </p>
       ) : null}
+      <PhotoViewer
+        open={photos.open}
+        onClose={photos.close}
+        onStep={photos.step}
+      />
     </article>
   );
 }

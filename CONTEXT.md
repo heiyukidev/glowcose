@@ -46,7 +46,7 @@ _Avoid_: Comment, remark, description
 
 **Photo**:
 A meal picture attached to a Meal. A Meal may have several Photos.
-_Avoid_: Image, attachment, file
+_Avoid_: Image, picture, attachment, file, preview
 
 ## Mobile shipping
 

@@ -56,6 +56,11 @@ const FRENCH_MESSAGES = {
   "home.emptyBody":
     "Ajoutez la première glycémie du jour — cela prend moins de 10 secondes.",
   "meal.photos": "Photos",
+  "photo.close": "Fermer",
+  "photo.previous": "Photo précédente",
+  "photo.next": "Photo suivante",
+  "photo.open": "Voir les photos",
+  "photo.position": "{{current}} / {{total}}",
   "meal.addBefore": "Ajouter avant le repas",
   "meal.addAfter": "Ajouter après le repas",
   "meal.emptyValue": "—",
