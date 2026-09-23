@@ -505,7 +505,12 @@ export function isPendingFormPhoto(photo: {
  * Without this, changing contexte/heure after Galerie wipes the selection.
  */
 export function photosAfterMealChange<
-  T extends { blob?: unknown; localUri?: string },
+  T extends {
+    blob?: unknown;
+    localUri?: string;
+    url?: string;
+    storageId?: string;
+  },
 >(current: T[], mealPhotosAsForm: T[]): T[] {
   const pending = filter(current, isPendingFormPhoto);
   return take(concat(mealPhotosAsForm, pending), MAX_MEAL_PHOTOS);

@@ -113,13 +113,22 @@ describe("mergeMealPhotos", () => {
   });
 });
 
+type FormPhotoLike = {
+  url: string;
+  blob?: unknown;
+  localUri?: string;
+  storageId?: string;
+};
+
 describe("photosAfterMealChange", () => {
   test("keeps pending local picks when the form rebinds to another meal", () => {
-    const current = [
+    const current: FormPhotoLike[] = [
       { url: "blob:pending-1", blob: {} },
       { url: "blob:pending-2", localUri: "file:///b.jpg" },
     ];
-    const mealPhotos = [{ url: "https://cdn/meal.jpg", storageId: "kg1" }];
+    const mealPhotos: FormPhotoLike[] = [
+      { url: "https://cdn/meal.jpg", storageId: "kg1" },
+    ];
     expect(photosAfterMealChange(current, mealPhotos)).toEqual([
       { url: "https://cdn/meal.jpg", storageId: "kg1" },
       { url: "blob:pending-1", blob: {} },
@@ -128,7 +137,9 @@ describe("photosAfterMealChange", () => {
   });
 
   test("does not keep already-saved photos from the previous meal binding", () => {
-    const current = [{ url: "https://cdn/old.jpg", storageId: "kgOld" }];
+    const current: FormPhotoLike[] = [
+      { url: "https://cdn/old.jpg", storageId: "kgOld" },
+    ];
     expect(photosAfterMealChange(current, [])).toEqual([]);
   });
 });
