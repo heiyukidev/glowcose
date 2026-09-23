@@ -4,6 +4,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { includes } from "lodash";
 
+import { AnalyticsProvider } from "@/providers/analytics-provider";
 import { AppProviders } from "@/providers/app-providers";
 import { useSettings } from "@/providers/settings-provider";
 import { colors } from "@/theme";
@@ -55,10 +56,12 @@ function Gate() {
 
 export default function RootLayout() {
   return (
-    <AppProviders>
-      <StatusBar style="dark" />
-      <Gate />
-    </AppProviders>
+    <AnalyticsProvider>
+      <AppProviders>
+        <StatusBar style="dark" />
+        <Gate />
+      </AppProviders>
+    </AnalyticsProvider>
   );
 }
 

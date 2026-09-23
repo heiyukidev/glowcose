@@ -17,6 +17,7 @@ import {
   LocalReadingsProvider,
 } from "@/components/readings-provider";
 import { SettingsProvider } from "@/components/settings-provider";
+import { PostHogIdentify } from "@/components/posthog-identify";
 import { isClerkConfigured, isConvexConfigured } from "@/lib/runtime";
 
 function ThemeAndToaster({ children }: { children: ReactNode }) {
@@ -74,6 +75,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
         localization={frFR}
         publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
       >
+        <PostHogIdentify />
         {convexEnabled ? (
           <ConvexTree>{inner}</ConvexTree>
         ) : (
