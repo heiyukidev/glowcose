@@ -1,14 +1,25 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 
+import { isContext, type ReadingContext } from "@glowcose/core";
 import { Screen } from "@/components/screen";
 import { Disclaimer } from "@/components/disclaimer";
 import { AddReadingForm } from "@/components/add-reading-form";
 import { colors } from "@/theme";
 
+function resolvePresetContext(
+  raw: string | string[] | undefined,
+): ReadingContext | undefined {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (!value || !isContext(value)) return undefined;
+  return value;
+}
+
 export default function AddRoute() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ context?: string | string[] }>();
+  const presetContext = resolvePresetContext(params.context);
 
   return (
     <Screen>
@@ -25,7 +36,7 @@ export default function AddRoute() {
           <Text style={styles.sub}>Valeur, contexte, enregistrer.</Text>
         </View>
       </View>
-      <AddReadingForm />
+      <AddReadingForm presetContext={presetContext} />
       <Disclaimer />
     </Screen>
   );

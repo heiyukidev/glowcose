@@ -24,6 +24,10 @@ import {
   subscribeLocalStore,
   updateLocalReading,
 } from "@/stores/readings-store";
+import {
+  uploadLocalPhoto,
+  type LocalPhotoSource,
+} from "@/lib/photo-upload";
 
 type ReadingsContextValue = {
   readings: Reading[];
@@ -32,7 +36,7 @@ type ReadingsContextValue = {
   updateReading: (id: string, input: NewReading) => Promise<void>;
   archiveReading: (id: string) => Promise<void>;
   getReading: (id: string) => Reading | undefined;
-  uploadPhoto?: (blob: Blob) => Promise<string>;
+  uploadPhoto?: (source: LocalPhotoSource) => Promise<string>;
 };
 
 const ReadingsContext = createContext<ReadingsContextValue | null>(null);
@@ -143,21 +147,9 @@ function ConvexReadingsLive({ children }: { children: ReactNode }) {
   );
 
   const uploadPhoto = useCallback(
-    async (blob: Blob) => {
+    async (source: LocalPhotoSource) => {
       const postUrl = await generatePhotoUploadUrl();
-      const result = await fetch(postUrl, {
-        method: "POST",
-        headers: { "Content-Type": blob.type || "image/jpeg" },
-        body: blob,
-      });
-      if (!result.ok) {
-        throw new Error("Photo upload failed");
-      }
-      const payload = (await result.json()) as { storageId?: string };
-      if (!payload.storageId) {
-        throw new Error("Photo upload failed");
-      }
-      return payload.storageId;
+      return await uploadLocalPhoto(postUrl, source);
     },
     [generatePhotoUploadUrl],
   );

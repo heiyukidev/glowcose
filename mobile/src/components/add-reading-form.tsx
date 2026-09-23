@@ -40,7 +40,9 @@ import {
   MAX_MEAL_PHOTOS,
   formMealKey,
   mealMediaForForm,
+  photosAfterMealChange,
   photosFromLegacy,
+  resolveUploadedMealPhotos,
 } from "@glowcose/core";
 import { Chip, Button } from "@/components/ui";
 import { StatusBadge } from "@/components/status-badge";
@@ -57,14 +59,21 @@ const TONE_BG = {
   hypo: statusColors.hypo.bg,
 } as const;
 
-export function AddReadingForm({ initial }: { initial?: Reading }) {
+export function AddReadingForm({
+  initial,
+  presetContext,
+}: {
+  initial?: Reading;
+  presetContext?: ReadingContext;
+}) {
   const router = useRouter();
   const { addReading, updateReading, archiveReading, uploadPhoto, readings } =
     useReadings();
   const { settings, setUnit } = useSettings();
   const now = useMemo(() => new Date(), []);
   const defaultTakenAt = initial?.takenAt ?? now.getTime();
-  const defaultContext = initial?.context ?? defaultContextForTime(now);
+  const defaultContext =
+    initial?.context ?? presetContext ?? defaultContextForTime(now);
   const [rawValue, setRawValue] = useState(() =>
     initial ? formatInputValue(initial.valueMgDl, settings.unit) : "",
   );
@@ -77,11 +86,17 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
     ? { note: initial.note ?? "", photos: photosFromLegacy(initial) }
     : mealMediaForForm(readings, defaultContext, defaultTakenAt);
   const [note, setNote] = useState(openingMedia.note ?? "");
-  const [photos, setPhotos] = useState(() =>
+  const [photos, setPhotos] = useState<
+    {
+      url: string;
+      storageId?: string;
+      localUri?: string;
+      mimeType?: string;
+    }[]
+  >(() =>
     map(openingMedia.photos, (photo) => ({
       url: photo.url ?? "",
       storageId: photo.storageId,
-      localUri: photo.url,
     })),
   );
   const [saving, setSaving] = useState(false);
@@ -92,22 +107,26 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
     setAttachedMealKey(mealKey);
     if (context === "other" && initial?.context === "other") {
       setNote(initial.note ?? "");
-      setPhotos(
-        map(photosFromLegacy(initial), (photo) => ({
-          url: photo.url ?? "",
-          storageId: photo.storageId,
-          localUri: photo.url,
-        })),
+      setPhotos((current) =>
+        photosAfterMealChange(
+          current,
+          map(photosFromLegacy(initial), (photo) => ({
+            url: photo.url ?? "",
+            storageId: photo.storageId,
+          })),
+        ),
       );
     } else {
       const media = mealMediaForForm(readings, context, takenAt);
       setNote(media.note ?? "");
-      setPhotos(
-        map(media.photos, (photo) => ({
-          url: photo.url ?? "",
-          storageId: photo.storageId,
-          localUri: photo.url,
-        })),
+      setPhotos((current) =>
+        photosAfterMealChange(
+          current,
+          map(media.photos, (photo) => ({
+            url: photo.url ?? "",
+            storageId: photo.storageId,
+          })),
+        ),
       );
     }
   }
@@ -121,14 +140,19 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
   const band = thresholdsForContext(context, offset, settings.thresholds);
 
   async function appendAssets(
-    assets: { uri?: string }[] | undefined,
+    assets: { uri?: string; mimeType?: string }[] | undefined,
   ) {
     const remaining = MAX_MEAL_PHOTOS - size(photos);
     const selected = take(assets ?? [], remaining);
     const next = compact(
       map(selected, (asset) =>
         asset.uri
-          ? { url: asset.uri, localUri: asset.uri, storageId: undefined }
+          ? {
+              url: asset.uri,
+              localUri: asset.uri,
+              mimeType: asset.mimeType,
+              storageId: undefined,
+            }
           : undefined,
       ),
     );
@@ -203,26 +227,22 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
     }
     setSaving(true);
     try {
-      const nextPhotos = await Promise.all(
-        map(photos, async (photo) => {
-          if (photo.localUri && !photo.storageId) {
-            if (uploadPhoto) {
-              const response = await fetch(photo.localUri);
-              if (!response.ok) {
-                throw new Error("Photo unreadable");
-              }
-              const blob = await response.blob();
-              const storageId = await uploadPhoto(blob);
-              return { storageId };
-            }
-            return { url: photo.localUri };
+      const nextPhotos = await resolveUploadedMealPhotos(photos, async (photo) => {
+        if (photo.localUri && !photo.storageId) {
+          if (uploadPhoto) {
+            const storageId = await uploadPhoto({
+              uri: photo.localUri,
+              mimeType: photo.mimeType,
+            });
+            return { storageId };
           }
-          return {
-            ...(photo.storageId ? { storageId: photo.storageId } : {}),
-            ...(photo.url ? { url: photo.url } : {}),
-          };
-        }),
-      );
+          return { url: photo.localUri };
+        }
+        return {
+          ...(photo.storageId ? { storageId: photo.storageId } : {}),
+          ...(photo.url ? { url: photo.url } : {}),
+        };
+      });
       const payload = {
         valueMgDl: parsedMgDl,
         context,

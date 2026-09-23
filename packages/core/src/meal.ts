@@ -492,6 +492,25 @@ export function formMealKey(
   return `new:${slot}:${localDateKey(takenAt)}`;
 }
 
+/** Pending = picked on device/browser, not uploaded to Convex yet. */
+export function isPendingFormPhoto(photo: {
+  blob?: unknown;
+  localUri?: string;
+}): boolean {
+  return Boolean(photo.blob || photo.localUri);
+}
+
+/**
+ * When the form rebinds to another Meal, keep photos the member just picked.
+ * Without this, changing contexte/heure after Galerie wipes the selection.
+ */
+export function photosAfterMealChange<
+  T extends { blob?: unknown; localUri?: string },
+>(current: T[], mealPhotosAsForm: T[]): T[] {
+  const pending = filter(current, isPendingFormPhoto);
+  return take(concat(mealPhotosAsForm, pending), MAX_MEAL_PHOTOS);
+}
+
 export const MEAL_SLOT_LABELS: Record<MealSlot, string> = {
   breakfast: "Petit-déjeuner",
   lunch: "Déjeuner",
@@ -614,4 +633,111 @@ export function groupReadingsByMeal(readings: Reading[]): MealSection[] {
     }),
   );
   return foldSplitAfterMeals(sections);
+}
+
+/** Named meal slots always shown on Aujourd’hui, even with no Readings. */
+export const DEFAULT_DAY_MEAL_SLOTS = [
+  "breakfast",
+  "lunch",
+  "dinner",
+] as const;
+export type DefaultDayMealSlot = (typeof DEFAULT_DAY_MEAL_SLOTS)[number];
+
+export type MealCardSide = "before" | "after";
+
+export type MealCardModel = {
+  id: string;
+  slot: DefaultDayMealSlot;
+  label: string;
+  note?: string;
+  photos: MealPhoto[];
+  before?: Reading;
+  after?: Reading;
+  isShell: boolean;
+};
+
+export function contextForMealSide(
+  slot: DefaultDayMealSlot,
+  side: MealCardSide,
+): ReadingContext {
+  if (slot === "breakfast") {
+    return side === "before" ? "before_breakfast" : "after_breakfast";
+  }
+  if (slot === "lunch") {
+    return side === "before" ? "before_lunch" : "after_lunch";
+  }
+  return side === "before" ? "before_dinner" : "after_dinner";
+}
+
+export function pickBeforeReading(
+  readings: Reading[],
+): Reading | undefined {
+  return find(
+    readings,
+    (reading) => !isAfterContext(reading.context) && reading.context !== "other",
+  );
+}
+
+/** Prefer the 2h after Reading; fall back to 1h, then any after. */
+export function pickAfterReading(
+  readings: Reading[],
+): Reading | undefined {
+  const afters = filter(readings, (reading) =>
+    isAfterContext(reading.context),
+  );
+  const at2h = find(afters, (reading) => reading.postMealOffset === 2);
+  if (at2h) return at2h;
+  const at1h = find(afters, (reading) => reading.postMealOffset === 1);
+  if (at1h) return at1h;
+  return afters[0];
+}
+
+function mealCardFromSection(section: MealSection): MealCardModel | null {
+  if (section.slot === "other") return null;
+  const before = pickBeforeReading(section.readings);
+  const after = pickAfterReading(section.readings);
+  return {
+    id: section.id,
+    slot: section.slot,
+    label: section.label,
+    ...(section.note ? { note: section.note } : {}),
+    photos: section.photos,
+    ...(before ? { before } : {}),
+    ...(after ? { after } : {}),
+    isShell: false,
+  };
+}
+
+function emptyMealShell(slot: DefaultDayMealSlot): MealCardModel {
+  return {
+    id: `shell:${slot}`,
+    slot,
+    label: MEAL_SLOT_LABELS[slot],
+    photos: [],
+    isShell: true,
+  };
+}
+
+/**
+ * Always three named meal cards (Petit-déj / Déjeuner / Dîner), plus any
+ * leftover sections (Autre, or a second named meal on rare days).
+ * Empty slots are virtual shells — no Meal is created until a Reading lands.
+ */
+export function todayMealCards(readings: Reading[]): {
+  meals: MealCardModel[];
+  extras: MealSection[];
+} {
+  const sections = groupReadingsByMeal(readings);
+  const claimed = new Set<string>();
+  const meals: MealCardModel[] = map([...DEFAULT_DAY_MEAL_SLOTS], (slot) => {
+    const section = find(
+      sections,
+      (item) => item.slot === slot && !claimed.has(item.id),
+    );
+    if (!section) return emptyMealShell(slot);
+    claimed.add(section.id);
+    return mealCardFromSection(section) ?? emptyMealShell(slot);
+  });
+  const extras = filter(sections, (section) => !claimed.has(section.id));
+  return { meals, extras };
 }

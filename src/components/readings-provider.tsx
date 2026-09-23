@@ -28,6 +28,10 @@ import {
 import { JournalUnavailable } from "@/components/journal-unavailable";
 import { planImport } from "@/lib/csv-import";
 import type { NewReading, Reading } from "@/lib/glucose";
+import {
+  normalizeImageMimeType,
+  storageIdFromUploadBody,
+} from "@/lib/photo-upload";
 
 type ReadingsContextValue = {
   readings: Reading[];
@@ -170,17 +174,13 @@ function ConvexReadingsLive({ children }: { children: ReactNode }) {
       const postUrl = await generatePhotoUploadUrl();
       const result = await fetch(postUrl, {
         method: "POST",
-        headers: { "Content-Type": blob.type || "image/jpeg" },
+        headers: { "Content-Type": normalizeImageMimeType(blob.type) },
         body: blob,
       });
       if (!result.ok) {
         throw new Error("Photo upload failed");
       }
-      const payload = (await result.json()) as { storageId?: string };
-      if (!payload.storageId) {
-        throw new Error("Photo upload failed");
-      }
-      return payload.storageId;
+      return storageIdFromUploadBody(await result.text());
     },
     [generatePhotoUploadUrl],
   );

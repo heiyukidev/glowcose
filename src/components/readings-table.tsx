@@ -5,7 +5,7 @@ import { compact, filter, get, groupBy, keys, map, orderBy, size } from "lodash"
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-
+import { MealCard } from "@/components/meal-card";
 import { StatusBadge, StatusDot } from "@/components/status-badge";
 import { useSettings } from "@/components/settings-provider";
 import {
@@ -28,7 +28,7 @@ import {
   readingStatus,
   type Reading,
 } from "@/lib/glucose";
-import { groupReadingsByMeal } from "@/lib/meal";
+import { todayMealCards } from "@/lib/meal";
 
 export function ReadingsList({
   readings,
@@ -44,6 +44,10 @@ export function ReadingsList({
   byMeal?: boolean;
 }) {
   const { settings } = useSettings();
+
+  if (byMeal) {
+    return <MealDayCards readings={readings} />;
+  }
 
   if (size(readings) === 0) {
     return (
@@ -61,10 +65,6 @@ export function ReadingsList({
         ) : null}
       </div>
     );
-  }
-
-  if (byMeal) {
-    return <MealSections readings={readings} />;
   }
 
   const grouped = groupBy(readings, (reading) =>
@@ -133,7 +133,7 @@ export function ReadingsList({
                             <span className="font-medium">
                               {formatPrimary(reading.valueMgDl, settings.unit)}
                             </span>
-                            <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                            <span className="mt-0.5 block text-xs text-muted-foreground">
                               {formatSecondary(reading.valueMgDl, settings.unit)}
                             </span>
                           </Link>
@@ -154,13 +154,16 @@ export function ReadingsList({
   );
 }
 
-function MealSections({ readings }: { readings: Reading[] }) {
+function MealDayCards({ readings }: { readings: Reading[] }) {
   const { settings } = useSettings();
-  const sections = groupReadingsByMeal(readings);
+  const { meals, extras } = todayMealCards(readings);
 
   return (
     <div className="space-y-5">
-      {map(sections, (section) => {
+      {map(meals, (meal) => (
+        <MealCard key={meal.id} meal={meal} />
+      ))}
+      {map(extras, (section) => {
         const urls = compact(map(section.photos, (photo) => photo.url));
         return (
           <section
@@ -168,7 +171,7 @@ function MealSections({ readings }: { readings: Reading[] }) {
             className="overflow-hidden rounded-2xl bg-card ring-1 ring-foreground/10"
           >
             <div className="border-b border-border px-4 pt-3.5 pb-3">
-              <h3 className="text-[17px] font-semibold tracking-tight">
+              <h3 className="font-display text-lg font-medium tracking-tight">
                 {section.label}
               </h3>
               {section.note ? (
@@ -178,10 +181,10 @@ function MealSections({ readings }: { readings: Reading[] }) {
               ) : null}
               {size(urls) > 0 ? (
                 <div className="mt-3 flex gap-2">
-                  {map(urls, (url) => (
+                  {map(urls, (url, index) => (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      key={url}
+                      key={`${section.id}-photo-${index}`}
                       src={url}
                       alt={`Photo du ${section.label}`}
                       className="size-16 rounded-lg object-cover"
@@ -209,18 +212,18 @@ function MealSections({ readings }: { readings: Reading[] }) {
                     >
                       <StatusDot status={status} />
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[15px] font-semibold">
+                        <span className="block text-sm font-semibold">
                           {formatTime(reading.takenAt)}
                         </span>
-                        <span className="mt-0.5 block text-[13px] text-foreground">
+                        <span className="mt-0.5 block text-sm text-foreground">
                           {momentLabel(reading.context, reading.postMealOffset)}
                         </span>
                       </span>
                       <span className="flex flex-col items-end gap-1">
-                        <span className="text-[15px] font-semibold">
+                        <span className="text-sm font-semibold">
                           {formatPrimary(reading.valueMgDl, settings.unit)}
                         </span>
-                        <span className="text-[11px] text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">
                           {formatSecondary(reading.valueMgDl, settings.unit)}
                         </span>
                         <StatusBadge status={status} />

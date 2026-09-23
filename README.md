@@ -80,10 +80,10 @@ Les changements JS / styles / assets partent avec `eas update` sur le `runtimeVe
 ```sh
 cd mobile
 eas update --channel preview --environment preview --message "description courte"
-eas update --channel production --environment production --message "description courte"
+eas update --channel production --environment preview --message "description courte"
 ```
 
-Détail : [`mobile/README.md`](mobile/README.md#mises-à-jour-ota-eas-update).
+Toujours `--environment preview` pour Gluciel (même sur le channel `production`) : l’environnement EAS `production` injecte les clés Clerk/Convex Kristine account-wide. Voir `CONTEXT.md` et [`mobile/README.md`](mobile/README.md#mises-à-jour-ota-eas-update).
 
 ### Identifiants de continuité
 

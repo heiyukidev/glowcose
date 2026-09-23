@@ -6,6 +6,7 @@ import {
   mealSlotForContext,
   mergeMealNotes,
   mergeMealPhotos,
+  photosAfterMealChange,
 } from "./meal";
 
 const PARIS = "Europe/Paris";
@@ -109,5 +110,25 @@ describe("mergeMealPhotos", () => {
       { url: "c" },
       { url: "d" },
     ]);
+  });
+});
+
+describe("photosAfterMealChange", () => {
+  test("keeps pending local picks when the form rebinds to another meal", () => {
+    const current = [
+      { url: "blob:pending-1", blob: {} },
+      { url: "blob:pending-2", localUri: "file:///b.jpg" },
+    ];
+    const mealPhotos = [{ url: "https://cdn/meal.jpg", storageId: "kg1" }];
+    expect(photosAfterMealChange(current, mealPhotos)).toEqual([
+      { url: "https://cdn/meal.jpg", storageId: "kg1" },
+      { url: "blob:pending-1", blob: {} },
+      { url: "blob:pending-2", localUri: "file:///b.jpg" },
+    ]);
+  });
+
+  test("does not keep already-saved photos from the previous meal binding", () => {
+    const current = [{ url: "https://cdn/old.jpg", storageId: "kgOld" }];
+    expect(photosAfterMealChange(current, [])).toEqual([]);
   });
 });
