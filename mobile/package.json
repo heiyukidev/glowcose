@@ -49,7 +49,7 @@
     "eas:build:ios": "eas build --platform ios --profile production",
     "eas:submit:ios": "eas submit --platform ios --profile production",
     "eas:update:preview": "eas update --channel preview --environment preview",
-    "eas:update:production": "eas update --channel production --environment production"
+    "eas:update:production": "eas update --channel production --environment preview"
   },
   "private": true
 }

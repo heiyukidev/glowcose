@@ -156,11 +156,11 @@ eas update --channel preview --environment preview --message "description courte
 Production, seulement une fois le binaire de production OTA-capable installé :
 
 ```sh
-eas update --channel production --environment production --message "description courte"
+eas update --channel production --environment preview --message "description courte"
 # ou : npm run eas:update:production -- --message "description courte"
 ```
 
-`--environment` est obligatoire (SDK 57) : il injecte les `EXPO_PUBLIC_*` **du projet EAS**, pas le `.env` local. `preview` / `development` correspondent au Clerk de test et au Convex Gluciel. L’environnement **production** du compte Expo mélange aussi des variables **account-wide** Kristine (`EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, `EXPO_PUBLIC_CONVEX_URL`) : vérifier sur le dashboard EAS laquelle gagne avant le premier OTA production, ou délier les variables partagées Kristine de ces noms.
+`--environment` est obligatoire (SDK 57) : il injecte les `EXPO_PUBLIC_*` **du projet EAS**, pas le `.env` local. **Toujours utiliser `--environment preview` pour Gluciel**, y compris sur le channel `production`. L’environnement EAS nommé `production` mélange aussi des variables **account-wide** Kristine (`EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, `EXPO_PUBLIC_CONVEX_URL`) qui gagnent et pointent l’app vers `clerk.kristineapp.com`. `preview` n’a que le Clerk / Convex Gluciel (`adapted-squid-4107` / `artful-puffin-486`).
 
 ### Ce que ce dépôt ne fait pas à votre place
 

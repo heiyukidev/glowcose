@@ -51,3 +51,5 @@ _Avoid_: Image, attachment, file
 ## Mobile shipping
 
 JS, styling, and bundled assets on mobile ship with **EAS Update** on the matching `runtimeVersion` (`appVersion` policy: `0.2.0` today). Native changes (new native module, SDK bump, permissions, splash) need a new store / TestFlight binary. An OTA cannot add native capabilities (see ADR 0002 file picker, ADR 0004).
+
+**EAS env for Gluciel OTAs:** always `--environment preview`, even on the `production` channel. The Expo account `production` environment also carries account-wide Kristine vars (`EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, `EXPO_PUBLIC_CONVEX_URL`) that win over the project ones and point the app at `clerk.kristineapp.com` / `convex.kristineapp.com`. `preview` has only Gluciel’s Clerk (`adapted-squid-4107`) and Convex (`artful-puffin-486`).
