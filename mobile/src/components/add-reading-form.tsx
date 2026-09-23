@@ -40,7 +40,9 @@ import {
   MAX_MEAL_PHOTOS,
   formMealKey,
   mealMediaForForm,
+  photosAfterMealChange,
   photosFromLegacy,
+  resolveUploadedMealPhotos,
 } from "@glowcose/core";
 import { Chip, Button } from "@/components/ui";
 import { StatusBadge } from "@/components/status-badge";
@@ -98,20 +100,26 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
     setAttachedMealKey(mealKey);
     if (context === "other" && initial?.context === "other") {
       setNote(initial.note ?? "");
-      setPhotos(
-        map(photosFromLegacy(initial), (photo) => ({
-          url: photo.url ?? "",
-          storageId: photo.storageId,
-        })),
+      setPhotos((current) =>
+        photosAfterMealChange(
+          current,
+          map(photosFromLegacy(initial), (photo) => ({
+            url: photo.url ?? "",
+            storageId: photo.storageId,
+          })),
+        ),
       );
     } else {
       const media = mealMediaForForm(readings, context, takenAt);
       setNote(media.note ?? "");
-      setPhotos(
-        map(media.photos, (photo) => ({
-          url: photo.url ?? "",
-          storageId: photo.storageId,
-        })),
+      setPhotos((current) =>
+        photosAfterMealChange(
+          current,
+          map(media.photos, (photo) => ({
+            url: photo.url ?? "",
+            storageId: photo.storageId,
+          })),
+        ),
       );
     }
   }
@@ -212,24 +220,22 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
     }
     setSaving(true);
     try {
-      const nextPhotos = await Promise.all(
-        map(photos, async (photo) => {
-          if (photo.localUri && !photo.storageId) {
-            if (uploadPhoto) {
-              const storageId = await uploadPhoto({
-                uri: photo.localUri,
-                mimeType: photo.mimeType,
-              });
-              return { storageId };
-            }
-            return { url: photo.localUri };
+      const nextPhotos = await resolveUploadedMealPhotos(photos, async (photo) => {
+        if (photo.localUri && !photo.storageId) {
+          if (uploadPhoto) {
+            const storageId = await uploadPhoto({
+              uri: photo.localUri,
+              mimeType: photo.mimeType,
+            });
+            return { storageId };
           }
-          return {
-            ...(photo.storageId ? { storageId: photo.storageId } : {}),
-            ...(photo.url ? { url: photo.url } : {}),
-          };
-        }),
-      );
+          return { url: photo.localUri };
+        }
+        return {
+          ...(photo.storageId ? { storageId: photo.storageId } : {}),
+          ...(photo.url ? { url: photo.url } : {}),
+        };
+      });
       const payload = {
         valueMgDl: parsedMgDl,
         context,

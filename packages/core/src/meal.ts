@@ -492,6 +492,25 @@ export function formMealKey(
   return `new:${slot}:${localDateKey(takenAt)}`;
 }
 
+/** Pending = picked on device/browser, not uploaded to Convex yet. */
+export function isPendingFormPhoto(photo: {
+  blob?: unknown;
+  localUri?: string;
+}): boolean {
+  return Boolean(photo.blob || photo.localUri);
+}
+
+/**
+ * When the form rebinds to another Meal, keep photos the member just picked.
+ * Without this, changing contexte/heure after Galerie wipes the selection.
+ */
+export function photosAfterMealChange<
+  T extends { blob?: unknown; localUri?: string },
+>(current: T[], mealPhotosAsForm: T[]): T[] {
+  const pending = filter(current, isPendingFormPhoto);
+  return take(concat(mealPhotosAsForm, pending), MAX_MEAL_PHOTOS);
+}
+
 export const MEAL_SLOT_LABELS: Record<MealSlot, string> = {
   breakfast: "Petit-déjeuner",
   lunch: "Déjeuner",

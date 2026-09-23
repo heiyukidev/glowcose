@@ -50,8 +50,10 @@ import {
   MAX_MEAL_PHOTOS,
   formMealKey,
   mealMediaForForm,
+  photosAfterMealChange,
   photosFromLegacy,
 } from "@/lib/meal";
+import { resolveUploadedMealPhotos } from "@/lib/photo-upload";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -161,20 +163,26 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
     setAttachedMealKey(mealKey);
     if (context === "other" && initial?.context === "other") {
       setNote(initial.note ?? "");
-      setPhotos(
-        map(photosFromLegacy(initial), (photo) => ({
-          url: photo.url ?? "",
-          storageId: photo.storageId,
-        })),
+      setPhotos((current) =>
+        photosAfterMealChange(
+          current,
+          map(photosFromLegacy(initial), (photo) => ({
+            url: photo.url ?? "",
+            storageId: photo.storageId,
+          })),
+        ),
       );
     } else {
       const media = mealMediaForForm(readings, context, takenAtMs);
       setNote(media.note ?? "");
-      setPhotos(
-        map(media.photos, (photo) => ({
-          url: photo.url ?? "",
-          storageId: photo.storageId,
-        })),
+      setPhotos((current) =>
+        photosAfterMealChange(
+          current,
+          map(media.photos, (photo) => ({
+            url: photo.url ?? "",
+            storageId: photo.storageId,
+          })),
+        ),
       );
     }
   }
@@ -248,21 +256,19 @@ export function AddReadingForm({ initial }: { initial?: Reading }) {
     }
     setSaving(true);
     try {
-      const nextPhotos = await Promise.all(
-        map(photos, async (photo) => {
-          if (photo.blob) {
-            if (uploadPhoto) {
-              const storageId = await uploadPhoto(photo.blob);
-              return { storageId };
-            }
-            return { url: await blobToDataUrl(photo.blob) };
+      const nextPhotos = await resolveUploadedMealPhotos(photos, async (photo) => {
+        if (photo.blob) {
+          if (uploadPhoto) {
+            const storageId = await uploadPhoto(photo.blob);
+            return { storageId };
           }
-          return {
-            ...(photo.storageId ? { storageId: photo.storageId } : {}),
-            ...(photo.url ? { url: photo.url } : {}),
-          };
-        }),
-      );
+          return { url: await blobToDataUrl(photo.blob) };
+        }
+        return {
+          ...(photo.storageId ? { storageId: photo.storageId } : {}),
+          ...(photo.url ? { url: photo.url } : {}),
+        };
+      });
       const payload = {
         valueMgDl: parsedMgDl,
         context,

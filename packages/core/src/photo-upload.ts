@@ -21,3 +21,20 @@ export function storageIdFromUploadBody(body: string): string {
   }
   return payload.storageId;
 }
+
+/**
+ * Resolve meal photos for save by uploading each pending local photo.
+ *
+ * Sequential on purpose: expo-file-system `uploadAsync` often fails when
+ * several uploads run concurrently (one works, several fail) — Expo#15347.
+ */
+export async function resolveUploadedMealPhotos<TPhoto, TResolved>(
+  photos: TPhoto[],
+  resolveOne: (photo: TPhoto) => Promise<TResolved>,
+): Promise<TResolved[]> {
+  const resolved: TResolved[] = [];
+  for (const photo of photos) {
+    resolved.push(await resolveOne(photo));
+  }
+  return resolved;
+}
