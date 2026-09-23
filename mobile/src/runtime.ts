@@ -13,3 +13,11 @@ export function clerkPublishableKey(): string | undefined {
 export function convexUrl(): string | undefined {
   return process.env.EXPO_PUBLIC_CONVEX_URL;
 }
+
+export function posthogProjectToken(): string | undefined {
+  return process.env.EXPO_PUBLIC_POSTHOG_PROJECT_TOKEN;
+}
+
+export function posthogHost(): string {
+  return process.env.EXPO_PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com";
+}

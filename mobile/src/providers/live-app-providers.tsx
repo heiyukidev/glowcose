@@ -4,7 +4,13 @@ import { tokenCache } from "@clerk/expo/token-cache";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
 
-import { clerkPublishableKey, convexUrl, isConvexConfigured } from "@/runtime";
+import { PostHogIdentify } from "@/providers/posthog-identify";
+import {
+  clerkPublishableKey,
+  convexUrl,
+  isConvexConfigured,
+  posthogProjectToken,
+} from "@/runtime";
 import {
   CarnetProvider,
   DemoCarnetProvider,
@@ -55,6 +61,7 @@ export function LiveAppProviders({ children }: { children: ReactNode }) {
   const inner = <SettingsProvider>{children}</SettingsProvider>;
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+      {posthogProjectToken() ? <PostHogIdentify /> : null}
       {isConvexConfigured() ? (
         <ConvexTree>{inner}</ConvexTree>
       ) : (
