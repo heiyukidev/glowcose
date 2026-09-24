@@ -37,6 +37,7 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/with-local-notifications-only.js",
       [
         "expo-notifications",
         {
@@ -44,7 +45,6 @@
           "enableBackgroundRemoteNotifications": false
         }
       ],
-      "./plugins/with-local-notifications-only.js",
       [
         "expo-splash-screen",
         {

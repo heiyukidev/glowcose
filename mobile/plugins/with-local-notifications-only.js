@@ -1,9 +1,10 @@
 const { withEntitlementsPlist } = require("expo/config-plugins");
 
 /**
- * Rappel uses local notifications only. expo-notifications still injects
- * aps-environment, which requires Push on the provisioning profile.
- * Strip it so store builds don't need the Push Notifications capability.
+ * Rappel uses local notifications only. expo-notifications injects
+ * aps-environment; that requires Push on the App Store profile.
+ * Register this plugin *before* expo-notifications so this entitlements
+ * mod runs after theirs (LIFO) and clears the key.
  */
 function withLocalNotificationsOnly(config) {
   return withEntitlementsPlist(config, (cfg) => {
