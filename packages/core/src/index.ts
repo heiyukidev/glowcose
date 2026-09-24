@@ -7,3 +7,4 @@ export * from "./format";
 export * from "./i18n";
 export * from "./photo-upload";
 export * from "./photo-viewer";
+export * from "./rappel";

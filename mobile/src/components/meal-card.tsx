@@ -4,6 +4,7 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import {
+  canOfferRappel,
   contextForMealSide,
   formatInputValue,
   formatTime,
@@ -19,6 +20,12 @@ import {
   PhotoViewer,
   useMealPhotoViewer,
 } from "@/components/photo-viewer";
+import { useActiveRappels } from "@/hooks/use-rappels";
+import {
+  cancelRappel,
+  formatActiveRappelClock,
+  scheduleRappel,
+} from "@/lib/rappel-notifications";
 import { useSettings } from "@/providers/settings-provider";
 import { colors, statusColors } from "@/theme";
 
@@ -122,6 +129,9 @@ export function MealCard({ meal }: { meal: MealCardModel }) {
   const urls = compact(map(meal.photos, (photo) => photo.url));
   const stack = take(urls, 3);
   const photos = useMealPhotoViewer();
+  const { rappelForMeal } = useActiveRappels();
+  const active = rappelForMeal(meal.id);
+  const showRappel = canOfferRappel(meal);
 
   return (
     <View style={styles.card}>
@@ -161,6 +171,40 @@ export function MealCard({ meal }: { meal: MealCardModel }) {
         </View>
         <MealSideCell side="after" meal={meal} reading={meal.after} />
       </View>
+      {showRappel ? (
+        <View style={styles.rappelRow}>
+          {active ? (
+            <Text style={styles.rappelMeta}>
+              {t("rappel.scheduled", {
+                time: formatActiveRappelClock(active),
+              })}
+              {" · "}
+              <Text
+                style={styles.rappelLink}
+                onPress={() => {
+                  void cancelRappel(meal.id);
+                }}
+              >
+                {t("rappel.cancel")}
+              </Text>
+            </Text>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("rappel.schedule")}
+              onPress={() => {
+                void scheduleRappel({
+                  mealId: meal.id,
+                  mealLabel: meal.label,
+                  afterContext: contextForMealSide(meal.slot, "after"),
+                });
+              }}
+            >
+              <Text style={styles.rappelLink}>{t("rappel.schedule")}</Text>
+            </Pressable>
+          )}
+        </View>
+      ) : null}
       {meal.note ? <Text style={styles.note}>{meal.note}</Text> : null}
       <PhotoViewer
         open={photos.open}
@@ -267,5 +311,22 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 13,
     color: colors.muted,
+  },
+  rappelRow: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  rappelMeta: {
+    fontSize: 12,
+    color: colors.muted,
+  },
+  rappelLink: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: colors.muted,
+    textDecorationLine: "underline",
   },
 });

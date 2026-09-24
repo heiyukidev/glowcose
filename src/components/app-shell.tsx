@@ -10,23 +10,27 @@ import { useSettings } from "@/components/settings-provider";
 
 const OPEN_PATHS = ["/onboarding", "/connexion", "/rejoindre"];
 
+function isOpenPath(pathname: string) {
+  return includes(OPEN_PATHS, pathname) || pathname.startsWith("/prototype");
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { settings, ready } = useSettings();
   const hideNav =
-    includes(OPEN_PATHS, pathname) ||
+    isOpenPath(pathname) ||
     pathname.startsWith("/ajouter") ||
     pathname.startsWith("/mesure");
 
   useEffect(() => {
     if (!ready) return;
-    if (!settings.onboarded && !includes(OPEN_PATHS, pathname)) {
+    if (!settings.onboarded && !isOpenPath(pathname)) {
       router.replace("/onboarding");
     }
   }, [pathname, ready, router, settings.onboarded]);
 
-  if (!ready) {
+  if (!ready && !pathname.startsWith("/prototype")) {
     return (
       <LoadingStatus className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 py-8">
         <div className="h-10 w-40 animate-pulse rounded-xl bg-muted" />
@@ -36,7 +40,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!settings.onboarded && !includes(OPEN_PATHS, pathname)) {
+  if (!settings.onboarded && !isOpenPath(pathname)) {
     return (
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 py-8">
         <div className="h-10 w-40 animate-pulse rounded-xl bg-muted" />

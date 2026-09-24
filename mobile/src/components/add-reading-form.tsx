@@ -28,12 +28,17 @@ import {
   formatSecondary,
   formatTime,
   isAfterContext,
+  MEAL_SLOT_LABELS,
+  afterContextForBefore,
+  mealSlotForContext,
   mgDlToGl,
   parseGlucoseInput,
   readingStatus,
+  shouldOfferRappelAfterSave,
   t,
   thresholdsForContext,
   unitPlaceholder,
+  type DefaultDayMealSlot,
   type PostMealOffset,
   type Reading,
   type ReadingContext,
@@ -51,6 +56,7 @@ import {
 } from "@/components/photo-viewer";
 import { StatusBadge } from "@/components/status-badge";
 import { UnitToggle } from "@/components/unit-toggle";
+import { setPendingRappelOffer } from "@/stores/rappel-store";
 import { useReadings } from "@/providers/readings-provider";
 import { useSettings } from "@/providers/settings-provider";
 import { colors, statusColors } from "@/theme";
@@ -260,6 +266,17 @@ export function AddReadingForm({
         await updateReading(initial._id, payload);
       } else {
         await addReading(payload);
+        if (shouldOfferRappelAfterSave(context)) {
+          const afterContext = afterContextForBefore(context);
+          const slot = mealSlotForContext(context);
+          if (afterContext && slot !== "other") {
+            setPendingRappelOffer({
+              slot: slot as DefaultDayMealSlot,
+              mealLabel: MEAL_SLOT_LABELS[slot],
+              afterContext,
+            });
+          }
+        }
       }
       router.replace("/");
     } catch {

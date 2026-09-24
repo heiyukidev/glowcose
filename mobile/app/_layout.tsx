@@ -7,6 +7,7 @@ import { includes } from "lodash";
 import { AnalyticsProvider } from "@/providers/analytics-provider";
 import { AppProviders } from "@/providers/app-providers";
 import { useSettings } from "@/providers/settings-provider";
+import { useRappelNotificationResponse } from "@/hooks/use-rappels";
 import { colors } from "@/theme";
 
 export {
@@ -21,6 +22,7 @@ function Gate() {
   const { settings, ready } = useSettings();
   const segments = useSegments();
   const router = useRouter();
+  useRappelNotificationResponse();
 
   useEffect(() => {
     if (!ready) return;

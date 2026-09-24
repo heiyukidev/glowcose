@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prototype:rappel": "node -e \"console.log('→ http://localhost:3010/prototype/rappel?variant=A')\" && next dev -p 3010",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

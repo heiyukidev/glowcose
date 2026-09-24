@@ -48,6 +48,10 @@ _Avoid_: Comment, remark, description
 A meal picture attached to a Meal. A Meal may have several Photos.
 _Avoid_: Image, picture, attachment, file, preview
 
+**Rappel**:
+A Member-scheduled local ping on their phone to come back and add the missing after Reading on a breakfast, lunch, or dinner Meal. At most one active Rappel per Meal for that Member; a new schedule replaces the previous. Only the Member who scheduled it is reminded. Fired about two hours after they tap; the notification names the Meal. Not used for Other Meals. Scheduling UI lives in the mobile app only.
+_Avoid_: Notification, alert, alarm, push (as the domain object), reminder (in FR UI copy)
+
 ## Mobile shipping
 
 JS, styling, and bundled assets on mobile ship with **EAS Update** on the matching `runtimeVersion` (`appVersion` policy: `0.2.0` today). Native changes (new native module, SDK bump, permissions, splash) need a new store / TestFlight binary. An OTA cannot add native capabilities (see ADR 0002 file picker, ADR 0004).

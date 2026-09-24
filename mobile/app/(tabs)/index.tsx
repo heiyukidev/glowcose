@@ -2,15 +2,24 @@ import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { filter, size } from "lodash";
+import { filter, find, size } from "lodash";
 import { useRouter } from "expo-router";
 
-import { DIABETES_TYPE_LABELS, readingStatus, t } from "@glowcose/core";
+import {
+  canOfferRappel,
+  DIABETES_TYPE_LABELS,
+  readingStatus,
+  t,
+  todayMealCards,
+} from "@glowcose/core";
 import { Screen } from "@/components/screen";
 import { AppHeader } from "@/components/header";
 import { Disclaimer } from "@/components/disclaimer";
+import { RappelOfferToast } from "@/components/rappel-offer-toast";
 import { Button } from "@/components/ui";
 import { ReadingsList, todayReadings } from "@/components/reading-list";
+import { useRappels } from "@/hooks/use-rappels";
+import { scheduleRappel } from "@/lib/rappel-notifications";
 import { useCarnet } from "@/providers/carnet-provider";
 import { useReadings } from "@/providers/readings-provider";
 import { useSettings } from "@/providers/settings-provider";
@@ -21,6 +30,7 @@ export default function TodayScreen() {
   const { readings, ready } = useReadings();
   const { settings } = useSettings();
   const { mine } = useCarnet();
+  const { offer, dismissOffer } = useRappels();
   const [now] = useState(() => new Date());
   const today = todayReadings(readings, now);
   const inRangeCount = size(
@@ -36,6 +46,22 @@ export default function TodayScreen() {
     ),
   );
   const todayLabel = format(now, "EEEE d MMMM", { locale: fr });
+
+  async function onScheduleFromToast() {
+    if (!offer) return;
+    const { meals } = todayMealCards(readings);
+    const meal = find(meals, (item) => item.slot === offer.slot);
+    if (!meal || meal.isShell || !canOfferRappel(meal)) {
+      dismissOffer();
+      return;
+    }
+    const scheduled = await scheduleRappel({
+      mealId: meal.id,
+      mealLabel: offer.mealLabel,
+      afterContext: offer.afterContext,
+    });
+    if (scheduled) dismissOffer();
+  }
 
   return (
     <Screen>
@@ -53,6 +79,14 @@ export default function TodayScreen() {
         onPress={() => router.push("/ajouter")}
         style={styles.cta}
       />
+      {offer ? (
+        <RappelOfferToast
+          onSchedule={() => {
+            void onScheduleFromToast();
+          }}
+          onDismiss={dismissOffer}
+        />
+      ) : null}
       {!ready ? (
         <View
           accessible
