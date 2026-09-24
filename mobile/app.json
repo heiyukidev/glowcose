@@ -44,6 +44,7 @@
           "enableBackgroundRemoteNotifications": false
         }
       ],
+      "./plugins/with-local-notifications-only.js",
       [
         "expo-splash-screen",
         {
