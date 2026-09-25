@@ -3,11 +3,12 @@ import { StyleSheet, Text, View } from "react-native";
 import { size, take } from "lodash";
 import { useRouter } from "expo-router";
 
-import { HISTORY_PAGE_SIZE, t } from "@glowcose/core";
+import { HISTORY_DAY_PAGE_SIZE, historyDays, t } from "@glowcose/core";
 import { Button } from "@/components/ui";
 import { Screen } from "@/components/screen";
 import { AppHeader } from "@/components/header";
 import { Disclaimer } from "@/components/disclaimer";
+import { HistoryGrid } from "@/components/history-grid";
 import { ReadingsList } from "@/components/reading-list";
 import { useReadings } from "@/providers/readings-provider";
 import { colors } from "@/theme";
@@ -15,9 +16,10 @@ import { colors } from "@/theme";
 export default function HistoryRoute() {
   const router = useRouter();
   const { readings, ready } = useReadings();
-  const [visibleCount, setVisibleCount] = useState(HISTORY_PAGE_SIZE);
-  const visible = take(readings, visibleCount);
-  const hidden = size(readings) - size(visible);
+  const days = historyDays(readings);
+  const [visibleCount, setVisibleCount] = useState(HISTORY_DAY_PAGE_SIZE);
+  const visible = take(days, visibleCount);
+  const hidden = size(days) - size(visible);
 
   return (
     <Screen>
@@ -32,21 +34,25 @@ export default function HistoryRoute() {
         />
       ) : (
         <>
-          <ReadingsList
-            readings={visible}
-            emptyTitle={t("history.emptyTitle")}
-            emptyBody={t("history.emptyBody")}
-            emptyAction={{
-              label: t("home.addReading"),
-              onPress: () => router.push("/ajouter"),
-            }}
-          />
+          {size(days) === 0 ? (
+            <ReadingsList
+              readings={[]}
+              emptyTitle={t("history.emptyTitle")}
+              emptyBody={t("history.emptyBody")}
+              emptyAction={{
+                label: t("home.addReading"),
+                onPress: () => router.push("/ajouter"),
+              }}
+            />
+          ) : (
+            <HistoryGrid days={visible} />
+          )}
           {hidden > 0 ? (
             <Button
               title={t("history.loadMore")}
               variant="outline"
               onPress={() =>
-                setVisibleCount((count) => count + HISTORY_PAGE_SIZE)
+                setVisibleCount((count) => count + HISTORY_DAY_PAGE_SIZE)
               }
               style={styles.more}
             />

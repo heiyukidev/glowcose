@@ -1,4 +1,5 @@
 export * from "./constants";
+export * from "./history";
 export * from "./glucose";
 export * from "./meal";
 export * from "./csv-import";
