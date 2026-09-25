@@ -82,6 +82,8 @@ const FRENCH_MESSAGES = {
   "history.loadMore": "Jours plus anciens",
   "history.cell": "{{meal}} {{side}}",
   "history.emptyCell": "{{meal}} {{side}}, vide",
+  "history.showOthers": "Afficher Autre",
+  "history.hideOthers": "Masquer Autre",
   "graph.title": "Graphique",
   "graph.days7": "7 jours",
   "graph.days30": "30 jours",

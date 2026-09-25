@@ -1,4 +1,5 @@
-import { map } from "lodash";
+import { useState } from "react";
+import { map, size } from "lodash";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
@@ -74,40 +75,79 @@ export function HistoryGrid({ days }: { days: HistoryDay[] }) {
         </View>
       </View>
       {map(days, (day) => (
-        <View key={day.dayKey} style={styles.day}>
-          <View style={styles.row}>
-            <Text style={styles.date}>{formatHistoryDay(day.takenAt)}</Text>
-            {map(SLOTS, (slot) =>
-              map(SIDES, (side) => (
-                <HistoryCell
-                  key={`${day.dayKey}-${slot}-${side}`}
-                  slot={slot}
-                  side={side}
-                  reading={day.slots[slot][side]}
-                  unit={settings.unit}
-                  thresholds={settings.thresholds}
-                />
-              )),
-            )}
-          </View>
-          {map(day.extras, (extra) => {
+        <HistoryDayRow
+          key={day.dayKey}
+          day={day}
+          unit={settings.unit}
+          thresholds={settings.thresholds}
+        />
+      ))}
+    </View>
+  );
+}
+
+function HistoryDayRow({
+  day,
+  unit,
+  thresholds,
+}: {
+  day: HistoryDay;
+  unit: GlucoseUnit;
+  thresholds: ThresholdPreset;
+}) {
+  const [open, setOpen] = useState(false);
+  const hasExtras = size(day.extras) > 0;
+  const date = formatHistoryDay(day.takenAt);
+
+  return (
+    <View style={styles.day}>
+      <View style={styles.row}>
+        {hasExtras ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: open }}
+            accessibilityLabel={t(open ? "history.hideOthers" : "history.showOthers")}
+            onPress={() => setOpen((value) => !value)}
+            style={styles.dateCol}
+          >
+            <Text style={styles.date}>
+              {open ? "▾" : "▸"} {date}
+            </Text>
+          </Pressable>
+        ) : (
+          <Text style={styles.date}>{date}</Text>
+        )}
+        {map(SLOTS, (slot) =>
+          map(SIDES, (side) => (
+            <HistoryCell
+              key={`${day.dayKey}-${slot}-${side}`}
+              slot={slot}
+              side={side}
+              reading={day.slots[slot][side]}
+              unit={unit}
+              thresholds={thresholds}
+            />
+          )),
+        )}
+      </View>
+      {open
+        ? map(day.extras, (extra) => {
             const status = readingStatus(
               extra.reading.valueMgDl,
               extra.reading.context,
               extra.reading.postMealOffset,
-              settings.thresholds,
+              thresholds,
             );
             return (
               <ExtraLine
                 key={extra.id}
                 id={extra.reading._id}
-                label={`${extra.label} · ${formatInputValue(extra.reading.valueMgDl, settings.unit)}`}
+                label={`${extra.label} · ${formatInputValue(extra.reading.valueMgDl, unit)}`}
                 status={status}
               />
             );
-          })}
-        </View>
-      ))}
+          })
+        : null}
     </View>
   );
 }
@@ -208,10 +248,10 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   dateCol: {
-    width: 52,
+    width: 68,
   },
   date: {
-    width: 52,
+    width: 68,
     fontSize: 11,
     fontWeight: "500",
     color: colors.muted,
@@ -248,7 +288,7 @@ const styles = StyleSheet.create({
     color: colors.muted,
   },
   extraRow: {
-    paddingLeft: 52,
+    paddingLeft: 68,
   },
   extra: {
     alignSelf: "flex-start",
