@@ -1,51 +1,89 @@
-import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
-import { filter, find, size } from "lodash";
-import { useRouter } from "expo-router";
+import { useState, type ReactNode } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { filter, find, map, size } from "lodash";
+import { ChevronLeft, ChevronRight } from "lucide-react-native";
 
 import {
   canOfferRappel,
-  DIABETES_TYPE_LABELS,
+  canMoveJournalForward,
+  dayScoreTone,
+  journalDayKey,
+  journalDayLabel,
   readingStatus,
+  readingsOnLocalDay,
+  shiftLocalDay,
+  startOfLocalDay,
   t,
   todayMealCards,
+  type DayScoreTone,
 } from "@glowcose/core";
 import { Screen } from "@/components/screen";
 import { AppHeader } from "@/components/header";
 import { Disclaimer } from "@/components/disclaimer";
 import { RappelOfferToast } from "@/components/rappel-offer-toast";
-import { Button } from "@/components/ui";
-import { ReadingsList, todayReadings } from "@/components/reading-list";
+import { ReadingsList } from "@/components/reading-list";
 import { useRappels } from "@/hooks/use-rappels";
 import { scheduleRappel } from "@/lib/rappel-notifications";
-import { useCarnet } from "@/providers/carnet-provider";
 import { useReadings } from "@/providers/readings-provider";
 import { useSettings } from "@/providers/settings-provider";
 import { colors } from "@/theme";
 
+const TONE: Record<
+  DayScoreTone,
+  { backgroundColor: string; color: string; shadow: string }
+> = {
+  green: {
+    backgroundColor: "#E5F6EA",
+    color: colors.statusInFg,
+    shadow: colors.statusIn,
+  },
+  yellow: {
+    backgroundColor: "#FBEED6",
+    color: colors.statusHighFg,
+    shadow: colors.statusHigh,
+  },
+  red: {
+    backgroundColor: "#F8E4DF",
+    color: colors.statusAlertFg,
+    shadow: colors.statusAlert,
+  },
+};
+
 export default function TodayScreen() {
-  const router = useRouter();
   const { readings, ready } = useReadings();
   const { settings } = useSettings();
-  const { mine } = useCarnet();
   const { offer, dismissOffer } = useRappels();
-  const [now] = useState(() => new Date());
-  const today = todayReadings(readings, now);
-  const inRangeCount = size(
-    filter(
-      today,
-      (reading) =>
-        readingStatus(
-          reading.valueMgDl,
-          reading.context,
-          reading.postMealOffset,
-          settings.thresholds,
-        ) === "in_range",
+  const [today] = useState(() => startOfLocalDay(new Date()));
+  const [day, setDay] = useState(() => startOfLocalDay(new Date()));
+  const [scoreOpen, setScoreOpen] = useState(false);
+  const dayReadings = readingsOnLocalDay(readings, day);
+  const statuses = map(dayReadings, (reading) =>
+    readingStatus(
+      reading.valueMgDl,
+      reading.context,
+      reading.postMealOffset,
+      settings.thresholds,
     ),
   );
-  const todayLabel = format(now, "EEEE d MMMM", { locale: fr });
+  const inRangeCount = size(filter(statuses, (status) => status === "in_range"));
+  const tone = dayScoreTone(statuses);
+  const onToday = !canMoveJournalForward(day, today);
+  const label = journalDayLabel(day, today);
+  const dayKey = journalDayKey(day);
+  const scoreLabel = t("home.score", {
+    inRange: inRangeCount,
+    total: size(dayReadings),
+  });
+  const tooltip = onToday
+    ? t("home.inRangeToday", {
+        inRange: inRangeCount,
+        total: size(dayReadings),
+      })
+    : t("home.inRangeOnDay", {
+        inRange: inRangeCount,
+        total: size(dayReadings),
+        date: label,
+      });
 
   async function onScheduleFromToast() {
     if (!offer) return;
@@ -66,19 +104,64 @@ export default function TodayScreen() {
   return (
     <Screen>
       <AppHeader />
-      <Text style={styles.date}>{todayLabel}</Text>
-      <Text style={styles.title}>{t("home.today")}</Text>
-      <Text style={styles.sub}>
-        {DIABETES_TYPE_LABELS[settings.diabetesType]} ·{" "}
-        {(mine?.memberCount ?? 1) > 1
-          ? t("home.sharedTracking")
-          : t("home.personalTracking")}
-      </Text>
-      <Button
-        title={t("home.addReading")}
-        onPress={() => router.push("/ajouter")}
-        style={styles.cta}
-      />
+      <View style={styles.nav}>
+        <View style={styles.side}>
+          <DayStep
+            label={t("home.previousDay")}
+            onPress={() => {
+              setScoreOpen(false);
+              setDay((current) => shiftLocalDay(current, -1));
+            }}
+          >
+            <ChevronLeft color={colors.foreground} size={22} />
+          </DayStep>
+        </View>
+        <Text style={styles.title}>{label}</Text>
+        <View style={styles.sideRight}>
+          {tone ? (
+            <View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={tooltip}
+                onPress={() => setScoreOpen((open) => !open)}
+                style={[
+                  styles.score,
+                  {
+                    backgroundColor: TONE[tone].backgroundColor,
+                    shadowColor: TONE[tone].shadow,
+                  },
+                ]}
+              >
+                <Text style={[styles.scoreText, { color: TONE[tone].color }]}>
+                  {scoreLabel}
+                </Text>
+              </Pressable>
+              {scoreOpen ? (
+                <View style={styles.tooltip}>
+                  <Text style={styles.tooltipText}>{tooltip}</Text>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+          <DayStep
+            label={t("home.nextDay")}
+            disabled={onToday}
+            onPress={() => {
+              setScoreOpen(false);
+              setDay((current) =>
+                canMoveJournalForward(current, today)
+                  ? shiftLocalDay(current, 1)
+                  : current,
+              );
+            }}
+          >
+            <ChevronRight
+              color={onToday ? colors.muted : colors.foreground}
+              size={22}
+            />
+          </DayStep>
+        </View>
+      </View>
       {offer ? (
         <RappelOfferToast
           onSchedule={() => {
@@ -95,53 +178,111 @@ export default function TodayScreen() {
           style={styles.skeleton}
         />
       ) : (
-        <>
-          <Text style={styles.count}>
-            {size(today) === 0
-              ? t("home.noReadingToday")
-              : t("home.inRangeToday", {
-                  inRange: inRangeCount,
-                  total: size(today),
-                })}
-          </Text>
-          <ReadingsList
-            readings={today}
-            byMeal
-            emptyTitle={t("home.emptyTitle")}
-            emptyBody={t("home.emptyBody")}
-          />
-        </>
+        <ReadingsList
+          readings={dayReadings}
+          byMeal
+          dayKey={dayKey}
+          emptyTitle={t("home.emptyTitle")}
+          emptyBody={t("home.emptyBody")}
+        />
       )}
       <Disclaimer style={styles.disclaimer} />
     </Screen>
   );
 }
 
+function DayStep({
+  label,
+  disabled,
+  onPress,
+  children,
+}: {
+  label: string;
+  disabled?: boolean;
+  onPress: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      disabled={disabled}
+      onPress={onPress}
+      style={[styles.step, disabled && styles.stepDisabled]}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  date: {
-    fontSize: 13,
-    color: colors.muted,
-    textTransform: "capitalize",
+  nav: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+    zIndex: 20,
+  },
+  side: {
+    flex: 1,
+    alignItems: "flex-start",
+  },
+  sideRight: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 8,
   },
   title: {
+    textAlign: "center",
     fontSize: 32,
     fontWeight: "600",
     color: colors.foreground,
     fontFamily: "Georgia",
   },
-  sub: {
-    marginTop: 4,
-    marginBottom: 16,
-    fontSize: 13,
-    color: colors.muted,
+  step: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  cta: {
-    marginBottom: 16,
+  stepDisabled: {
+    opacity: 0.35,
   },
-  count: {
-    marginBottom: 12,
-    fontSize: 13,
-    color: colors.muted,
+  score: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowOpacity: 0.7,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 6,
+  },
+  scoreText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  tooltip: {
+    position: "absolute",
+    top: 62,
+    right: 0,
+    width: 180,
+    borderRadius: 12,
+    backgroundColor: colors.foreground,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    zIndex: 20,
+  },
+  tooltipText: {
+    color: colors.background,
+    fontSize: 12,
+    textAlign: "center",
   },
   skeleton: {
     height: 160,

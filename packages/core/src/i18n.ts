@@ -67,6 +67,7 @@ const FRENCH_MESSAGES = {
   "photo.position": "{{current}} / {{total}}",
   "meal.addBefore": "Ajouter avant le repas",
   "meal.addAfter": "Ajouter après le repas",
+  "meal.addOther": "Ajouter Autre",
   "meal.emptyValue": "—",
   "rappel.schedule": "Rappeler dans 2 h",
   "rappel.scheduleShort": "Dans 2 h",

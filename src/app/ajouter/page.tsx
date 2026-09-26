@@ -9,12 +9,15 @@ import { AddReadingForm } from "@/components/add-reading-form";
 import { Disclaimer } from "@/components/disclaimer";
 import { Button } from "@/components/ui/button";
 import { isContext } from "@/lib/glucose";
+import { journalDayFromKey, takenAtForJournalDay } from "@/lib/journal-day";
 import { t } from "@/lib/i18n";
 
 function AddPageBody() {
   const searchParams = useSearchParams();
   const raw = searchParams.get("context") ?? "";
   const presetContext = isContext(raw) ? raw : undefined;
+  const day = journalDayFromKey(searchParams.get("day") ?? "");
+  const presetTakenAt = day ? takenAtForJournalDay(day) : undefined;
 
   return (
     <>
@@ -34,7 +37,10 @@ function AddPageBody() {
           <p className="text-xs text-muted-foreground">{t("add.lead")}</p>
         </div>
       </header>
-      <AddReadingForm presetContext={presetContext} />
+      <AddReadingForm
+        presetContext={presetContext}
+        presetTakenAt={presetTakenAt}
+      />
       <Disclaimer />
     </>
   );

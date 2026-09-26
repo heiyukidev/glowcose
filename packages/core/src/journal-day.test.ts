@@ -3,9 +3,12 @@ import { describe, expect, it } from "vitest";
 import {
   canMoveJournalForward,
   dayScoreTone,
+  journalDayFromKey,
+  journalDayKey,
   journalDayLabel,
   readingsOnLocalDay,
   shiftLocalDay,
+  takenAtForJournalDay,
 } from "./journal-day";
 import type { Reading } from "./glucose";
 
@@ -48,5 +51,15 @@ describe("journal day", () => {
     expect(dayScoreTone(["in_range", "high"])).toBe("yellow");
     expect(dayScoreTone(["high", "very_high"])).toBe("red");
     expect(dayScoreTone(["in_range", "hypo"])).toBe("red");
+  });
+
+  it("keeps the clock when stamping a past journal day", () => {
+    const past = shiftLocalDay(today, -3);
+    const now = new Date(2026, 8, 25, 14, 5, 30);
+    const stamped = new Date(takenAtForJournalDay(past, now));
+    expect(journalDayKey(stamped)).toBe(journalDayKey(past));
+    expect(stamped.getHours()).toBe(14);
+    expect(stamped.getMinutes()).toBe(5);
+    expect(journalDayFromKey("2026-09-22")?.getDate()).toBe(22);
   });
 });

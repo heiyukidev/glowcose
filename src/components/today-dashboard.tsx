@@ -2,9 +2,8 @@
 
 import { filter, map, size } from "lodash";
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { AppHeader } from "@/components/app-header";
 import { LoadingStatus } from "@/components/loading-status";
@@ -16,6 +15,7 @@ import { readingStatus } from "@/lib/glucose";
 import {
   canMoveJournalForward,
   dayScoreTone,
+  journalDayKey,
   journalDayLabel,
   readingsOnLocalDay,
   shiftLocalDay,
@@ -51,6 +51,7 @@ export function TodayDashboard() {
   const tone = dayScoreTone(statuses);
   const onToday = !canMoveJournalForward(day, today);
   const label = journalDayLabel(day, today);
+  const dayKey = journalDayKey(day);
   const scoreLabel = t("home.score", {
     inRange: inRangeCount,
     total: size(dayReadings),
@@ -125,20 +126,13 @@ export function TodayDashboard() {
         <ReadingsList
           readings={dayReadings}
           byMeal
+          dayKey={dayKey}
           emptyTitle={t("home.emptyTitle")}
           emptyBody={t("home.emptyBody")}
         />
       )}
 
       <Disclaimer className="mt-8 text-center text-xs leading-relaxed text-muted-foreground" />
-
-      <Link
-        href="/ajouter"
-        aria-label={t("home.addReading")}
-        className="fixed bottom-24 z-40 flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-[0_10px_24px_color-mix(in_oklch,var(--primary)_45%,transparent)] right-[max(1rem,calc(50vw-16rem))]"
-      >
-        <Plus className="size-6" />
-      </Link>
     </div>
   );
 }

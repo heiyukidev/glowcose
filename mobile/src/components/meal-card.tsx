@@ -62,10 +62,12 @@ function MealSideCell({
   side,
   meal,
   reading,
+  dayKey,
 }: {
   side: MealCardSide;
   meal: MealCardModel;
   reading?: Reading;
+  dayKey?: string;
 }) {
   const router = useRouter();
   const { settings } = useSettings();
@@ -78,7 +80,10 @@ function MealSideCell({
       router.push(`/mesure/${reading._id}`);
       return;
     }
-    router.push({ pathname: "/ajouter", params: { context } });
+    router.push({
+      pathname: "/ajouter",
+      params: dayKey ? { context, day: dayKey } : { context },
+    });
   };
 
   if (!reading) {
@@ -125,7 +130,13 @@ function MealSideCell({
   );
 }
 
-export function MealCard({ meal }: { meal: MealCardModel }) {
+export function MealCard({
+  meal,
+  dayKey,
+}: {
+  meal: MealCardModel;
+  dayKey?: string;
+}) {
   const urls = compact(map(meal.photos, (photo) => photo.url));
   const stack = take(urls, 3);
   const photos = useMealPhotoViewer();
@@ -137,7 +148,12 @@ export function MealCard({ meal }: { meal: MealCardModel }) {
     <View style={styles.card}>
       <Text style={styles.title}>{meal.label}</Text>
       <View style={styles.row}>
-        <MealSideCell side="before" meal={meal} reading={meal.before} />
+        <MealSideCell
+          side="before"
+          meal={meal}
+          reading={meal.before}
+          dayKey={dayKey}
+        />
         <View style={styles.photosCol}>
           <Text style={styles.photosLabel}>{t("meal.photos")}</Text>
           {size(stack) > 0 ? (
@@ -169,7 +185,12 @@ export function MealCard({ meal }: { meal: MealCardModel }) {
             </View>
           )}
         </View>
-        <MealSideCell side="after" meal={meal} reading={meal.after} />
+        <MealSideCell
+          side="after"
+          meal={meal}
+          reading={meal.after}
+          dayKey={dayKey}
+        />
       </View>
       {showRappel ? (
         <View style={styles.rappelRow}>

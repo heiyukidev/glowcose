@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 
-import { isContext, type ReadingContext } from "@glowcose/core";
+import { isContext, journalDayFromKey, takenAtForJournalDay, type ReadingContext } from "@glowcose/core";
 import { Screen } from "@/components/screen";
 import { Disclaimer } from "@/components/disclaimer";
 import { AddReadingForm } from "@/components/add-reading-form";
@@ -16,10 +16,20 @@ function resolvePresetContext(
   return value;
 }
 
+function resolveDayKey(raw: string | string[] | undefined): string | undefined {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return value || undefined;
+}
+
 export default function AddRoute() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ context?: string | string[] }>();
+  const params = useLocalSearchParams<{
+    context?: string | string[];
+    day?: string | string[];
+  }>();
   const presetContext = resolvePresetContext(params.context);
+  const day = journalDayFromKey(resolveDayKey(params.day) ?? "");
+  const presetTakenAt = day ? takenAtForJournalDay(day) : undefined;
 
   return (
     <Screen>
@@ -36,7 +46,10 @@ export default function AddRoute() {
           <Text style={styles.sub}>Valeur, contexte, enregistrer.</Text>
         </View>
       </View>
-      <AddReadingForm presetContext={presetContext} />
+      <AddReadingForm
+        presetContext={presetContext}
+        presetTakenAt={presetTakenAt}
+      />
       <Disclaimer />
     </Screen>
   );
