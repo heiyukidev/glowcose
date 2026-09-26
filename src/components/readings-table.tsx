@@ -1,15 +1,12 @@
 "use client";
 
 import { format } from "date-fns";
-import { compact, filter, get, groupBy, keys, map, orderBy, size } from "lodash";
+import { filter, get, groupBy, keys, map, orderBy, size } from "lodash";
 import Link from "next/link";
+import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { MealCard } from "@/components/meal-card";
-import {
-  PhotoViewer,
-  useMealPhotoViewer,
-} from "@/components/photo-viewer";
 import { StatusBadge, StatusDot } from "@/components/status-badge";
 import { useSettings } from "@/components/settings-provider";
 import {
@@ -32,7 +29,8 @@ import {
   readingStatus,
   type Reading,
 } from "@/lib/glucose";
-import { todayMealCards } from "@/lib/meal";
+import { MEAL_SLOT_LABELS, todayMealCards } from "@/lib/meal";
+import { ajouterHref } from "@/lib/ajouter-href";
 import { t } from "@/lib/i18n";
 
 export function ReadingsList({
@@ -41,17 +39,19 @@ export function ReadingsList({
   emptyBody,
   emptyAction,
   byMeal = false,
+  dayKey,
 }: {
   readings: Reading[];
   emptyTitle: string;
   emptyBody: string;
   emptyAction?: { href: string; label: string };
   byMeal?: boolean;
+  dayKey?: string;
 }) {
   const { settings } = useSettings();
 
   if (byMeal) {
-    return <MealDayCards readings={readings} />;
+    return <MealDayCards readings={readings} dayKey={dayKey} />;
   }
 
   if (size(readings) === 0) {
@@ -159,101 +159,135 @@ export function ReadingsList({
   );
 }
 
-function MealDayCards({ readings }: { readings: Reading[] }) {
+function MealDayCards({
+  readings,
+  dayKey,
+}: {
+  readings: Reading[];
+  dayKey?: string;
+}) {
   const { settings } = useSettings();
   const { meals, extras } = todayMealCards(readings);
-  const photos = useMealPhotoViewer();
+  const leftoverNamed = filter(extras, (section) => section.slot !== "other");
+  const otherReadings = orderBy(
+    filter(readings, (reading) => reading.context === "other"),
+    ["takenAt"],
+    ["asc"],
+  );
 
   return (
     <div className="space-y-5">
       {map(meals, (meal) => (
-        <MealCard key={meal.id} meal={meal} />
+        <MealCard key={meal.id} meal={meal} dayKey={dayKey} />
       ))}
-      {map(extras, (section) => {
-        const urls = compact(map(section.photos, (photo) => photo.url));
-        return (
-          <section
-            key={section.id}
-            className="overflow-hidden rounded-2xl bg-card ring-1 ring-foreground/10"
-          >
-            <div className="border-b border-border px-4 pt-3.5 pb-3">
-              <h3 className="font-display text-lg font-medium tracking-tight">
-                {section.label}
-              </h3>
-              {section.note ? (
-                <p className="mt-1 line-clamp-4 wrap-break-word whitespace-pre-line text-sm text-muted-foreground">
-                  {section.note}
-                </p>
-              ) : null}
-              {size(urls) > 0 ? (
-                <div className="mt-3 flex gap-2">
-                  {map(urls, (url, index) => (
-                    <button
-                      key={`${section.id}-photo-${index}`}
-                      type="button"
-                      className="size-16 overflow-hidden rounded-lg"
-                      aria-label={t("photo.open")}
-                      onClick={() => photos.show(urls, index)}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={url}
-                        alt=""
-                        className="size-full object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-            <ul>
-              {map(section.readings, (reading) => {
-                const status = readingStatus(
-                  reading.valueMgDl,
-                  reading.context,
-                  reading.postMealOffset,
-                  settings.thresholds,
-                );
-                return (
-                  <li
-                    key={reading._id}
-                    className="border-b border-border last:border-b-0"
+      {map(leftoverNamed, (section) => (
+        <section
+          key={section.id}
+          className="overflow-hidden rounded-2xl bg-card ring-1 ring-foreground/10"
+        >
+          <div className="border-b border-border px-4 pt-3.5 pb-3">
+            <h3 className="font-display text-lg font-medium tracking-tight">
+              {section.label}
+            </h3>
+          </div>
+          <ul>
+            {map(section.readings, (reading) => {
+              const status = readingStatus(
+                reading.valueMgDl,
+                reading.context,
+                reading.postMealOffset,
+                settings.thresholds,
+              );
+              return (
+                <li
+                  key={reading._id}
+                  className="border-b border-border last:border-b-0"
+                >
+                  <Link
+                    href={`/mesure/${reading._id}`}
+                    className="flex items-start gap-3 px-4 py-3 hover:bg-muted/60"
                   >
-                    <Link
-                      href={`/mesure/${reading._id}`}
-                      className="flex items-start gap-3 px-4 py-3 hover:bg-muted/60"
-                    >
-                      <StatusDot status={status} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-semibold">
-                          {formatTime(reading.takenAt)}
-                        </span>
-                        <span className="mt-0.5 block text-sm text-foreground">
-                          {momentLabel(reading.context, reading.postMealOffset)}
-                        </span>
+                    <StatusDot status={status} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold">
+                        {formatTime(reading.takenAt)}
                       </span>
-                      <span className="flex flex-col items-end gap-1">
-                        <span className="text-sm font-semibold">
-                          {formatPrimary(reading.valueMgDl, settings.unit)}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatSecondary(reading.valueMgDl, settings.unit)}
-                        </span>
-                        <StatusBadge status={status} />
+                      <span className="mt-0.5 block text-sm text-foreground">
+                        {momentLabel(reading.context, reading.postMealOffset)}
                       </span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        );
-      })}
-      <PhotoViewer
-        open={photos.open}
-        onClose={photos.close}
-        onStep={photos.step}
-      />
+                    </span>
+                    <span className="flex flex-col items-end gap-1">
+                      <span className="text-sm font-semibold">
+                        {formatPrimary(reading.valueMgDl, settings.unit)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatSecondary(reading.valueMgDl, settings.unit)}
+                      </span>
+                      <StatusBadge status={status} />
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+      <section className="overflow-hidden rounded-2xl bg-card ring-1 ring-foreground/10">
+        <div className="border-b border-border px-4 pt-3.5 pb-3">
+          <h3 className="font-display text-lg font-medium tracking-tight">
+            {MEAL_SLOT_LABELS.other}
+          </h3>
+        </div>
+        {size(otherReadings) > 0 ? (
+          <ul>
+            {map(otherReadings, (reading) => {
+              const status = readingStatus(
+                reading.valueMgDl,
+                reading.context,
+                reading.postMealOffset,
+                settings.thresholds,
+              );
+              return (
+                <li
+                  key={reading._id}
+                  className="border-b border-border last:border-b-0"
+                >
+                  <Link
+                    href={`/mesure/${reading._id}`}
+                    className="flex items-start gap-3 px-4 py-3 hover:bg-muted/60"
+                  >
+                    <StatusDot status={status} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold">
+                        {formatTime(reading.takenAt)}
+                      </span>
+                      <span className="mt-0.5 block text-sm text-foreground">
+                        {momentLabel(reading.context, reading.postMealOffset)}
+                      </span>
+                    </span>
+                    <span className="flex flex-col items-end gap-1">
+                      <span className="text-sm font-semibold">
+                        {formatPrimary(reading.valueMgDl, settings.unit)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatSecondary(reading.valueMgDl, settings.unit)}
+                      </span>
+                      <StatusBadge status={status} />
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+        <Link
+          href={ajouterHref({ context: "other", dayKey })}
+          className="flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-semibold text-primary hover:bg-muted/60"
+        >
+          <Plus className="size-4" />
+          {t("meal.addOther")}
+        </Link>
+      </section>
     </div>
   );
 }

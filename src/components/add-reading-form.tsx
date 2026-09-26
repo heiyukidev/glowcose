@@ -124,10 +124,13 @@ type FormPhoto = {
 export function AddReadingForm({
   initial,
   presetContext,
+  presetTakenAt,
 }: {
   initial?: Reading;
   /** Prefill context when opening from a meal card (add only). */
   presetContext?: ReadingContext;
+  /** Prefill takenAt when opening from a past journal day. */
+  presetTakenAt?: number;
 }) {
   const router = useRouter();
   const photosViewer = useMealPhotoViewer();
@@ -135,7 +138,7 @@ export function AddReadingForm({
     useReadings();
   const { settings, setUnit } = useSettings();
   const now = useMemo(() => new Date(), []);
-  const defaultTakenAt = initial?.takenAt ?? now.getTime();
+  const defaultTakenAt = initial?.takenAt ?? presetTakenAt ?? now.getTime();
   const defaultContext =
     initial?.context ?? presetContext ?? defaultContextForTime(now);
   const [rawValue, setRawValue] = useState(() =>

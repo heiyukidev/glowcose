@@ -24,6 +24,7 @@ import {
   type MealCardModel,
   type MealCardSide,
 } from "@/lib/meal";
+import { ajouterHref } from "@/lib/ajouter-href";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -39,23 +40,29 @@ const EMPTY_SURFACE =
   "bg-muted/70 text-muted-foreground hover:bg-muted ring-1 ring-foreground/8";
 
 
-function sideHref(reading: Reading | undefined, context: string) {
+function sideHref(
+  reading: Reading | undefined,
+  context: string,
+  dayKey?: string,
+) {
   if (reading) return `/mesure/${reading._id}`;
-  return `/ajouter?context=${encodeURIComponent(context)}`;
+  return ajouterHref({ context, dayKey });
 }
 
 function MealSideCell({
   side,
   meal,
   reading,
+  dayKey,
 }: {
   side: MealCardSide;
   meal: MealCardModel;
   reading?: Reading;
+  dayKey?: string;
 }) {
   const { settings } = useSettings();
   const context = contextForMealSide(meal.slot, side);
-  const href = sideHref(reading, context);
+  const href = sideHref(reading, context, dayKey);
   const label =
     side === "before" ? t("meal.addBefore") : t("meal.addAfter");
 
@@ -106,7 +113,13 @@ function MealSideCell({
   );
 }
 
-export function MealCard({ meal }: { meal: MealCardModel }) {
+export function MealCard({
+  meal,
+  dayKey,
+}: {
+  meal: MealCardModel;
+  dayKey?: string;
+}) {
   const urls = compact(map(meal.photos, (photo) => photo.url));
   const photos = useMealPhotoViewer();
 
@@ -116,7 +129,7 @@ export function MealCard({ meal }: { meal: MealCardModel }) {
         {meal.label}
       </h3>
       <div className="flex items-stretch gap-2 px-3 pb-3">
-        <MealSideCell side="before" meal={meal} reading={meal.before} />
+        <MealSideCell side="before" meal={meal} reading={meal.before} dayKey={dayKey} />
         <div className="flex w-14 shrink-0 flex-col items-center justify-center gap-1.5 px-0.5">
           <span className="text-xs font-medium tracking-wide text-muted-foreground">
             {t("meal.photos")}
@@ -152,7 +165,7 @@ export function MealCard({ meal }: { meal: MealCardModel }) {
             </span>
           )}
         </div>
-        <MealSideCell side="after" meal={meal} reading={meal.after} />
+        <MealSideCell side="after" meal={meal} reading={meal.after} dayKey={dayKey} />
       </div>
       {meal.note ? (
         <p className="border-t border-border px-4 py-3 text-sm wrap-break-word whitespace-pre-line text-muted-foreground">

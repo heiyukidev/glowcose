@@ -1,6 +1,5 @@
 import { format } from "date-fns";
 import {
-  compact,
   filter,
   get,
   groupBy,
@@ -9,7 +8,7 @@ import {
   orderBy,
   size,
 } from "lodash";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import {
@@ -18,6 +17,7 @@ import {
   formatPrimary,
   formatSecondary,
   formatTime,
+  MEAL_SLOT_LABELS,
   momentLabel,
   readingStatus,
   t,
@@ -25,10 +25,6 @@ import {
   type Reading,
 } from "@glowcose/core";
 import { MealCard } from "@/components/meal-card";
-import {
-  PhotoViewer,
-  useMealPhotoViewer,
-} from "@/components/photo-viewer";
 import { StatusBadge, StatusDot } from "@/components/status-badge";
 import { Button } from "@/components/ui";
 import { useSettings } from "@/providers/settings-provider";
@@ -48,18 +44,20 @@ export function ReadingsList({
   emptyBody,
   emptyAction,
   byMeal = false,
+  dayKey,
 }: {
   readings: Reading[];
   emptyTitle: string;
   emptyBody: string;
   emptyAction?: { label: string; onPress: () => void };
   byMeal?: boolean;
+  dayKey?: string;
 }) {
   const router = useRouter();
   const { settings } = useSettings();
 
   if (byMeal) {
-    return <MealDayCards readings={readings} />;
+    return <MealDayCards readings={readings} dayKey={dayKey} />;
   }
 
   if (size(readings) === 0) {
@@ -142,90 +140,122 @@ export function ReadingsList({
   );
 }
 
-function MealDayCards({ readings }: { readings: Reading[] }) {
+function MealDayCards({
+  readings,
+  dayKey,
+}: {
+  readings: Reading[];
+  dayKey?: string;
+}) {
   const router = useRouter();
   const { settings } = useSettings();
   const { meals, extras } = todayMealCards(readings);
-  const photos = useMealPhotoViewer();
+  const leftoverNamed = filter(extras, (section) => section.slot !== "other");
+  const otherReadings = orderBy(
+    filter(readings, (reading) => reading.context === "other"),
+    ["takenAt"],
+    ["asc"],
+  );
 
   return (
     <View style={styles.stack}>
       {map(meals, (meal) => (
-        <MealCard key={meal.id} meal={meal} />
+        <MealCard key={meal.id} meal={meal} dayKey={dayKey} />
       ))}
-      {map(extras, (section) => {
-        const urls = compact(map(section.photos, (photo) => photo.url));
-        return (
-          <View key={section.id} style={styles.meal}>
-            <View style={styles.mealHead}>
-              <Text style={styles.mealTitle}>{section.label}</Text>
-              {section.note ? (
-                <Text style={styles.mealNote} numberOfLines={4}>
-                  {section.note}
-                </Text>
-              ) : null}
-              {size(urls) > 0 ? (
-                <View style={styles.photos}>
-                  {map(urls, (url, index) => (
-                    <Pressable
-                      key={`${section.id}-photo-${index}`}
-                      accessibilityRole="button"
-                      accessibilityLabel={t("photo.open")}
-                      onPress={() => photos.show(urls, index)}
-                    >
-                      <Image
-                        source={{ uri: url }}
-                        style={styles.photo}
-                        accessibilityElementsHidden
-                      />
-                    </Pressable>
-                  ))}
-                </View>
-              ) : null}
-            </View>
-            {map(section.readings, (reading, index) => {
-              const status = readingStatus(
-                reading.valueMgDl,
-                reading.context,
-                reading.postMealOffset,
-                settings.thresholds,
-              );
-              const isLast = index === size(section.readings) - 1;
-              return (
-                <Pressable
-                  key={reading._id}
-                  onPress={() => router.push(`/mesure/${reading._id}`)}
-                  style={[styles.row, isLast ? styles.rowLast : null]}
-                >
-                  <StatusDot status={status} />
-                  <View style={styles.rowMain}>
-                    <Text style={styles.time}>
-                      {formatTime(reading.takenAt)}
-                    </Text>
-                    <Text style={styles.context}>
-                      {momentLabel(reading.context, reading.postMealOffset)}
-                    </Text>
-                  </View>
-                  <View style={styles.values}>
-                    <Text style={styles.primary}>
-                      {formatPrimary(reading.valueMgDl, settings.unit)}
-                    </Text>
-                    <Text style={styles.secondary}>
-                      {formatSecondary(reading.valueMgDl, settings.unit)}
-                    </Text>
-                    <StatusBadge status={status} />
-                  </View>
-                </Pressable>
-              );
-            })}
+      {map(leftoverNamed, (section) => (
+        <View key={section.id} style={styles.meal}>
+          <View style={styles.mealHead}>
+            <Text style={styles.mealTitle}>{section.label}</Text>
           </View>
-        );
-      })}
-      <PhotoViewer
-        open={photos.open}
-        onClose={photos.close}
-        onStep={photos.step}
-      />
+          {map(section.readings, (reading, index) => {
+            const status = readingStatus(
+              reading.valueMgDl,
+              reading.context,
+              reading.postMealOffset,
+              settings.thresholds,
+            );
+            const isLast = index === size(section.readings) - 1;
+            return (
+              <Pressable
+                key={reading._id}
+                onPress={() => router.push(`/mesure/${reading._id}`)}
+                style={[styles.row, isLast ? styles.rowLast : null]}
+              >
+                <StatusDot status={status} />
+                <View style={styles.rowMain}>
+                  <Text style={styles.time}>
+                    {formatTime(reading.takenAt)}
+                  </Text>
+                  <Text style={styles.context}>
+                    {momentLabel(reading.context, reading.postMealOffset)}
+                  </Text>
+                </View>
+                <View style={styles.values}>
+                  <Text style={styles.primary}>
+                    {formatPrimary(reading.valueMgDl, settings.unit)}
+                  </Text>
+                  <Text style={styles.secondary}>
+                    {formatSecondary(reading.valueMgDl, settings.unit)}
+                  </Text>
+                  <StatusBadge status={status} />
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      ))}
+      <View style={styles.meal}>
+        <View style={styles.mealHead}>
+          <Text style={styles.mealTitle}>{MEAL_SLOT_LABELS.other}</Text>
+        </View>
+        {map(otherReadings, (reading, index) => {
+          const status = readingStatus(
+            reading.valueMgDl,
+            reading.context,
+            reading.postMealOffset,
+            settings.thresholds,
+          );
+          return (
+            <Pressable
+              key={reading._id}
+              onPress={() => router.push(`/mesure/${reading._id}`)}
+              style={styles.row}
+            >
+              <StatusDot status={status} />
+              <View style={styles.rowMain}>
+                <Text style={styles.time}>{formatTime(reading.takenAt)}</Text>
+                <Text style={styles.context}>
+                  {momentLabel(reading.context, reading.postMealOffset)}
+                </Text>
+              </View>
+              <View style={styles.values}>
+                <Text style={styles.primary}>
+                  {formatPrimary(reading.valueMgDl, settings.unit)}
+                </Text>
+                <Text style={styles.secondary}>
+                  {formatSecondary(reading.valueMgDl, settings.unit)}
+                </Text>
+                <StatusBadge status={status} />
+              </View>
+            </Pressable>
+          );
+        })}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("meal.addOther")}
+          onPress={() =>
+            router.push({
+              pathname: "/ajouter",
+              params: dayKey
+                ? { context: "other", day: dayKey }
+                : { context: "other" },
+            })
+          }
+          style={styles.addOther}
+        >
+          <Text style={styles.addOtherLabel}>{t("meal.addOther")}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -267,6 +297,17 @@ const styles = StyleSheet.create({
   mealNote: {
     fontSize: 13,
     color: colors.muted,
+  },
+  addOther: {
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addOtherLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.primary,
   },
   photos: {
     flexDirection: "row",
