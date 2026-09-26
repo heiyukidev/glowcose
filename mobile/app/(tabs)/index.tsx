@@ -105,19 +105,19 @@ export default function TodayScreen() {
     <Screen>
       <AppHeader />
       <View style={styles.nav}>
-        <View style={styles.side}>
-          <DayStep
-            label={t("home.previousDay")}
-            onPress={() => {
-              setScoreOpen(false);
-              setDay((current) => shiftLocalDay(current, -1));
-            }}
-          >
-            <ChevronLeft color={colors.foreground} size={22} />
-          </DayStep>
-        </View>
-        <Text style={styles.title}>{label}</Text>
-        <View style={styles.sideRight}>
+        <DayStep
+          label={t("home.previousDay")}
+          onPress={() => {
+            setScoreOpen(false);
+            setDay((current) => shiftLocalDay(current, -1));
+          }}
+        >
+          <ChevronLeft color={colors.foreground} size={22} />
+        </DayStep>
+        <View style={styles.center}>
+          <Text style={styles.title} numberOfLines={1}>
+            {label}
+          </Text>
           {tone ? (
             <View>
               <Pressable
@@ -143,24 +143,24 @@ export default function TodayScreen() {
               ) : null}
             </View>
           ) : null}
-          <DayStep
-            label={t("home.nextDay")}
-            disabled={onToday}
-            onPress={() => {
-              setScoreOpen(false);
-              setDay((current) =>
-                canMoveJournalForward(current, today)
-                  ? shiftLocalDay(current, 1)
-                  : current,
-              );
-            }}
-          >
-            <ChevronRight
-              color={onToday ? colors.muted : colors.foreground}
-              size={22}
-            />
-          </DayStep>
         </View>
+        <DayStep
+          label={t("home.nextDay")}
+          disabled={onToday}
+          onPress={() => {
+            setScoreOpen(false);
+            setDay((current) =>
+              canMoveJournalForward(current, today)
+                ? shiftLocalDay(current, 1)
+                : current,
+            );
+          }}
+        >
+          <ChevronRight
+            color={onToday ? colors.muted : colors.foreground}
+            size={22}
+          />
+        </DayStep>
       </View>
       {offer ? (
         <RappelOfferToast
@@ -219,31 +219,30 @@ const styles = StyleSheet.create({
   nav: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
     marginBottom: 16,
     zIndex: 20,
   },
-  side: {
+  center: {
     flex: 1,
-    alignItems: "flex-start",
-  },
-  sideRight: {
-    flex: 1,
+    minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-end",
+    justifyContent: "center",
     gap: 8,
   },
   title: {
+    flexShrink: 1,
     textAlign: "center",
-    fontSize: 32,
+    fontSize: 22,
     fontWeight: "600",
     color: colors.foreground,
     fontFamily: "Georgia",
   },
   step: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
@@ -254,9 +253,9 @@ const styles = StyleSheet.create({
     opacity: 0.35,
   },
   score: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     shadowOpacity: 0.7,
@@ -265,12 +264,12 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   scoreText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
   },
   tooltip: {
     position: "absolute",
-    top: 62,
+    top: 50,
     right: 0,
     width: 180,
     borderRadius: 12,
