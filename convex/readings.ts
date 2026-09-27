@@ -1,4 +1,4 @@
-import { compact, filter, isUndefined, keyBy, map, omit, omitBy, orderBy, size, uniq } from "lodash";
+import { compact, filter, find, isUndefined, keyBy, map, omit, omitBy, orderBy, size, uniq } from "lodash";
 import { v } from "convex/values";
 
 import { planImport } from "../packages/core/src/csv-import";
@@ -6,7 +6,7 @@ import {
   assertSavableReading,
   clampNote,
 } from "../packages/core/src/glucose";
-import type { MealPhoto } from "../packages/core/src/meal";
+import { localDateKey, type MealPhoto } from "../packages/core/src/meal";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
@@ -19,7 +19,7 @@ import {
   requireStoredPhoto,
   resolvePhotoUrls,
 } from "./lib/meals";
-import { mealPhoto, postMealOffset, readingContext } from "./schema";
+import { mealPhoto, mealSlot, postMealOffset, readingContext } from "./schema";
 
 const readingReturn = v.object({
   _id: v.id("readings"),
@@ -38,6 +38,8 @@ const readingReturn = v.object({
   takenAt: v.number(),
   createdAt: v.number(),
   archivedAt: v.optional(v.number()),
+  clientId: v.optional(v.string()),
+  rememberedNote: v.optional(v.string()),
 });
 
 async function membershipForUser(ctx: QueryCtx | MutationCtx, userId: string) {
@@ -121,6 +123,8 @@ async function presentReading(
     takenAt: row.takenAt,
     createdAt: row.createdAt,
     archivedAt: row.archivedAt,
+    clientId: row.clientId,
+    rememberedNote: row.rememberedNote,
   };
 }
 
@@ -412,3 +416,237 @@ export const archive = mutation({
     return null;
   },
 });
+
+const snapshotMeal = v.object({
+  _id: v.id("meals"),
+  clientId: v.optional(v.string()),
+  slot: mealSlot,
+  anchorAt: v.number(),
+  note: v.optional(v.string()),
+  rememberedNote: v.optional(v.string()),
+  photos: v.array(mealPhoto),
+  createdAt: v.number(),
+  archivedAt: v.optional(v.number()),
+});
+
+export const snapshot = query({
+  args: {},
+  returns: v.object({
+    meals: v.array(snapshotMeal),
+    readings: v.array(readingReturn),
+  }),
+  handler: async (ctx) => {
+    const userId = await requireUserId(ctx);
+    const membership = await membershipForUser(ctx, userId);
+    if (!membership) {
+      return { meals: [], readings: [] };
+    }
+    const meals = await ctx.db
+      .query("meals")
+      .withIndex("by_carnet", (q) => q.eq("carnetId", membership.carnetId))
+      .collect();
+    const rows = await ctx.db
+      .query("readings")
+      .withIndex("by_carnet_takenAt", (q) => q.eq("carnetId", membership.carnetId))
+      .order("desc")
+      .collect();
+    const mealsById = keyBy(meals, "_id");
+    return {
+      meals: await Promise.all(
+        map(meals, async (meal) => ({
+          _id: meal._id,
+          clientId: meal.clientId,
+          slot: meal.slot,
+          anchorAt: meal.anchorAt,
+          note: meal.note,
+          rememberedNote: meal.rememberedNote,
+          photos: asStoredPhotos(await resolvePhotoUrls(ctx, meal.photos)),
+          createdAt: meal.createdAt,
+          archivedAt: meal.archivedAt,
+        })),
+      ),
+      readings: await Promise.all(
+        map(rows, (row) =>
+          presentReading(ctx, row, row.mealId ? mealsById[row.mealId] : undefined),
+        ),
+      ),
+    };
+  },
+});
+
+const catchUpChange = v.object({
+  clientReadingId: v.string(),
+  clientMealId: v.string(),
+  slot: mealSlot,
+  anchorAt: v.number(),
+  note: v.optional(v.string()),
+  mealRememberedNote: v.optional(v.string()),
+  photos: v.array(mealPhoto),
+  valueMgDl: v.number(),
+  context: readingContext,
+  postMealOffset: v.optional(postMealOffset),
+  takenAt: v.number(),
+  createdAt: v.number(),
+  archivedAt: v.optional(v.number()),
+  recordedBy: v.optional(v.string()),
+  rememberedNote: v.optional(v.string()),
+});
+
+export const applyCatchUp = mutation({
+  args: {
+    changes: v.array(catchUpChange),
+    timeZone: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx);
+    const carnetId = await requireCarnetId(ctx, userId);
+    for (const change of args.changes) {
+      assertSavableReading({
+        valueMgDl: change.valueMgDl,
+        takenAt: change.takenAt,
+      });
+      const photos = filter(change.photos, (photo) => {
+        if (photo.storageId) return true;
+        return Boolean(
+          photo.url &&
+            !photo.url.startsWith("blob:") &&
+            !photo.url.startsWith("data:"),
+        );
+      });
+      if (photos.length > 0) {
+        await validatePhotos(ctx, photos);
+      }
+      const mealId = await upsertCatchUpMeal(ctx, {
+        userId,
+        carnetId,
+        change,
+        photos,
+        timeZone: args.timeZone,
+      });
+      await upsertCatchUpReading(ctx, {
+        userId,
+        carnetId,
+        mealId,
+        change,
+      });
+      if (change.archivedAt) {
+        await archiveMealIfEmpty(ctx, mealId, change.archivedAt);
+      }
+    }
+    return null;
+  },
+});
+
+async function upsertCatchUpMeal(
+  ctx: MutationCtx,
+  args: {
+    userId: string;
+    carnetId: Id<"carnets">;
+    change: {
+      clientMealId: string;
+      slot: Doc<"meals">["slot"];
+      anchorAt: number;
+      note?: string;
+      mealRememberedNote?: string;
+    };
+    photos: MealPhoto[];
+    timeZone?: string;
+  },
+): Promise<Id<"meals">> {
+  const byClient = await ctx.db
+    .query("meals")
+    .withIndex("by_carnet_and_clientId", (q) =>
+      q.eq("carnetId", args.carnetId).eq("clientId", args.change.clientMealId),
+    )
+    .unique();
+  const normalized = ctx.db.normalizeId("meals", args.change.clientMealId);
+  const byId = normalized ? await ctx.db.get(normalized) : null;
+  const existing = byClient ?? (byId && byId.carnetId === args.carnetId ? byId : null);
+  const day = localDateKey(args.change.anchorAt, args.timeZone);
+  const rows = await ctx.db
+    .query("meals")
+    .withIndex("by_carnet", (q) => q.eq("carnetId", args.carnetId))
+    .collect();
+  const sameDay =
+    args.change.slot === "other"
+      ? undefined
+      : find(
+          filter(rows, (meal) => !meal.archivedAt && meal.slot === args.change.slot),
+          (meal) => localDateKey(meal.anchorAt, args.timeZone) === day,
+        );
+  const target = existing ?? sameDay;
+  if (target) {
+    await ctx.db.patch(target._id, {
+      note: args.change.note,
+      rememberedNote: args.change.mealRememberedNote,
+      photos: asStoredPhotos(args.photos),
+      archivedAt: undefined,
+      clientId: target.clientId ?? args.change.clientMealId,
+    });
+    return target._id;
+  }
+  return await ctx.db.insert("meals", {
+    userId: args.userId,
+    carnetId: args.carnetId,
+    slot: args.change.slot,
+    anchorAt: args.change.anchorAt,
+    note: args.change.note,
+    rememberedNote: args.change.mealRememberedNote,
+    photos: asStoredPhotos(args.photos),
+    createdAt: Date.now(),
+    clientId: args.change.clientMealId,
+  });
+}
+
+async function upsertCatchUpReading(
+  ctx: MutationCtx,
+  args: {
+    userId: string;
+    carnetId: Id<"carnets">;
+    mealId: Id<"meals">;
+    change: {
+      clientReadingId: string;
+      valueMgDl: number;
+      context: Doc<"readings">["context"];
+      postMealOffset?: 1 | 2;
+      takenAt: number;
+      createdAt: number;
+      archivedAt?: number;
+      recordedBy?: string;
+      rememberedNote?: string;
+    };
+  },
+): Promise<void> {
+  const byClient = await ctx.db
+    .query("readings")
+    .withIndex("by_carnet_and_clientId", (q) =>
+      q.eq("carnetId", args.carnetId).eq("clientId", args.change.clientReadingId),
+    )
+    .unique();
+  const normalized = ctx.db.normalizeId("readings", args.change.clientReadingId);
+  const byId = normalized ? await ctx.db.get(normalized) : null;
+  const existing =
+    byClient ?? (byId && byId.carnetId === args.carnetId ? byId : null);
+  const patch = {
+    mealId: args.mealId,
+    valueMgDl: args.change.valueMgDl,
+    context: args.change.context,
+    postMealOffset: args.change.postMealOffset,
+    takenAt: args.change.takenAt,
+    archivedAt: args.change.archivedAt,
+    rememberedNote: args.change.rememberedNote,
+    recordedBy: args.change.recordedBy ?? args.userId,
+    clientId: args.change.clientReadingId,
+  };
+  if (existing) {
+    await ctx.db.patch(existing._id, patch);
+    return;
+  }
+  await ctx.db.insert("readings", {
+    userId: args.userId,
+    carnetId: args.carnetId,
+    createdAt: args.change.createdAt,
+    ...patch,
+  });
+}

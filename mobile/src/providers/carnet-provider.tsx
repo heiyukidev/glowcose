@@ -18,6 +18,8 @@ import {
 } from "@/stores/pending-invite";
 import {
   getSettingsSnapshot,
+  hasPendingCarnetSettings,
+  markCarnetSettingsSynced,
   saveSettings,
   setCarnetSettingsRemote,
 } from "@/stores/settings-store";
@@ -48,8 +50,23 @@ export function DemoCarnetProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function overlayCarnetSettings(mine: CarnetSnapshot): void {
+function overlayCarnetSettings(
+  mine: CarnetSnapshot,
+  pushLocal: (patch: {
+    diabetesType: CarnetSnapshot["diabetesType"];
+    thresholds: CarnetSnapshot["thresholds"];
+  }) => Promise<unknown>,
+): void {
   const current = getSettingsSnapshot();
+  if (hasPendingCarnetSettings()) {
+    void pushLocal({
+      diabetesType: current.diabetesType,
+      thresholds: current.thresholds,
+    }).then(() => {
+      markCarnetSettingsSynced();
+    });
+    return;
+  }
   const nextOnboarded = current.onboarded || mine.memberCount > 1;
   const sameType = current.diabetesType === mine.diabetesType;
   const sameThresholds = isEqual(current.thresholds, mine.thresholds);
@@ -94,8 +111,8 @@ export function CarnetProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!mineQuery) return;
-    overlayCarnetSettings(mineQuery);
-  }, [mineQuery]);
+    overlayCarnetSettings(mineQuery, (patch) => updateSettings(patch));
+  }, [mineQuery, updateSettings]);
 
   const joinWithCode = useCallback(
     async (code: string) => {

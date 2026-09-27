@@ -6,12 +6,14 @@ import {
   Fragment,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
-import { find, map, orderBy, size } from "lodash";
+import { find, orderBy, size } from "lodash";
 
 import { api } from "../../convex/_generated/api";
 import {
@@ -27,7 +29,29 @@ import {
 } from "@/lib/readings-store";
 import { JournalUnavailable } from "@/components/journal-unavailable";
 import { planImport } from "@/lib/csv-import";
+import {
+  catchUp,
+  choose,
+  emptyDeviceCarnet,
+  logFromServer,
+  outboundChanges,
+  record,
+  signOut as signOutDevice,
+  view,
+  type ClashView,
+} from "../../packages/core/src/offline-carnet";
+import {
+  clearDeviceCarnet,
+  deviceCarnetOpened,
+  getDeviceCarnet,
+  getDeviceCarnetServerSnapshot,
+  setDeviceCarnet,
+  subscribeDeviceCarnet,
+} from "@/lib/device-carnet-store";
 import type { NewReading, Reading } from "@/lib/glucose";
+import { useAuth } from "@clerk/nextjs";
+import { toast } from "sonner";
+import { t } from "@/lib/i18n";
 import {
   normalizeImageMimeType,
   storageIdFromUploadBody,
@@ -35,13 +59,19 @@ import {
 
 type ReadingsContextValue = {
   readings: Reading[];
+  archived: Reading[];
   ready: boolean;
+  clashes: ClashView[];
   addReading: (input: NewReading) => Promise<void>;
   importReadings: (
     incoming: NewReading[],
   ) => Promise<{ inserted: number; skipped: number }>;
   updateReading: (id: string, input: NewReading) => Promise<void>;
   archiveReading: (id: string) => Promise<void>;
+  restoreReading: (id: string) => Promise<void>;
+  applyRememberedNote: (mealId: string) => Promise<void>;
+  chooseClash: (id: string, choice: "keep" | "drop") => Promise<void>;
+  signOutCarnet: () => Promise<"cleared" | "offline" | "clash">;
   getReading: (id: string) => Reading | undefined;
   uploadPhoto?: (blob: Blob) => Promise<string>;
 };
@@ -92,11 +122,17 @@ function useLocalReadingsState(): ReadingsContextValue {
   return useMemo(
     () => ({
       readings,
+      archived: [],
       ready,
+      clashes: [],
       addReading,
       importReadings,
       updateReading,
       archiveReading,
+      restoreReading: async () => {},
+      applyRememberedNote: async () => {},
+      chooseClash: async () => {},
+      signOutCarnet: async () => "cleared" as const,
       getReading,
     }),
     [
@@ -118,56 +154,63 @@ export function LocalReadingsProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function mapConvexReading(doc: {
-  _id: string;
-  userId: string;
-  carnetId?: string;
-  recordedBy?: string;
-  mealId?: string;
-  valueMgDl: number;
-  context: Reading["context"];
-  postMealOffset?: Reading["postMealOffset"];
-  note?: string;
-  photos?: Reading["photos"];
-  photoUrl?: string;
-  photoStorageId?: string;
-  takenAt: number;
-  createdAt: number;
-  archivedAt?: number;
-}): Reading {
+function deviceTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
+function newClientId(): string {
+  return `local-${crypto.randomUUID()}`;
+}
+
+function recordMeta(readingId: string, mealId: string, userId: string) {
+  const now = Date.now();
   return {
-    _id: doc._id,
-    userId: doc.userId,
-    carnetId: doc.carnetId,
-    recordedBy: doc.recordedBy,
-    mealId: doc.mealId,
-    valueMgDl: doc.valueMgDl,
-    context: doc.context,
-    postMealOffset: doc.postMealOffset,
-    note: doc.note,
-    photos: doc.photos,
-    photoUrl: doc.photoUrl,
-    photoStorageId: doc.photoStorageId,
-    takenAt: doc.takenAt,
-    createdAt: doc.createdAt,
-    archivedAt: doc.archivedAt,
+    readingId,
+    mealId,
+    userId,
+    now,
+    recordedBy: userId,
+    timeZone: deviceTimeZone(),
+    archivedReadingId: newClientId(),
   };
 }
 
 function ConvexReadingsLive({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
+  const { signOut, userId } = useAuth();
   const local = useLocalReadingsState();
-  const convexReadings = useQuery(
-    api.readings.list,
+  const device = useSyncExternalStore(
+    subscribeDeviceCarnet,
+    getDeviceCarnet,
+    getDeviceCarnetServerSnapshot,
+  );
+  const snapshot = useQuery(
+    api.readings.snapshot,
     isAuthenticated ? {} : "skip",
   );
-  const addMutation = useMutation(api.readings.add);
+  const applyCatchUp = useMutation(api.readings.applyCatchUp);
   const importMutation = useMutation(api.readings.importMany);
-  const updateMutation = useMutation(api.readings.update);
-  const archiveMutation = useMutation(api.readings.archive);
   const generatePhotoUploadUrl = useMutation(
     api.readings.generatePhotoUploadUrl,
   );
+  const sharedRef = useRef<ReturnType<typeof logFromServer> | null>(null);
+  const memberId = userId ?? "member";
+
+  const flush = useCallback(async () => {
+    const caught = catchUp(getDeviceCarnet(), sharedRef.current, deviceTimeZone());
+    setDeviceCarnet(caught.device);
+    if (!sharedRef.current || caught.outbound.length === 0) return;
+    await applyCatchUp({
+      changes: outboundChanges(caught.outbound) as never,
+      timeZone: deviceTimeZone(),
+    });
+  }, [applyCatchUp]);
+
+  useEffect(() => {
+    if (!snapshot) return;
+    sharedRef.current = logFromServer(snapshot);
+    void flush().catch(() => {});
+  }, [flush, snapshot]);
 
   const uploadPhoto = useCallback(
     async (blob: Blob) => {
@@ -185,26 +228,33 @@ function ConvexReadingsLive({ children }: { children: ReactNode }) {
     [generatePhotoUploadUrl],
   );
 
+  const write = useCallback(
+    async (command: Parameters<typeof record>[1], ids?: { readingId: string; mealId: string }) => {
+      let current = getDeviceCarnet();
+      if (!current.base && sharedRef.current) {
+        current = catchUp(current, sharedRef.current, deviceTimeZone()).device;
+      }
+      const readingId = ids?.readingId ?? newClientId();
+      const next = record(
+        current,
+        command,
+        recordMeta(readingId, ids?.mealId ?? newClientId(), memberId),
+      );
+      setDeviceCarnet(next);
+      await flush().catch(() => {});
+    },
+    [flush, memberId],
+  );
+
   const addReading = useCallback(
     async (input: NewReading) => {
       if (!isAuthenticated) {
         await local.addReading(input);
         return;
       }
-      await addMutation({
-        valueMgDl: input.valueMgDl,
-        context: input.context,
-        postMealOffset: input.postMealOffset,
-        note: input.note,
-        takenAt: input.takenAt,
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        ...(input.photos ? { photos: input.photos as never } : {}),
-        ...(input.photoStorageId
-          ? { photoStorageId: input.photoStorageId as never }
-          : {}),
-      });
+      await write({ kind: "save", input });
     },
-    [addMutation, isAuthenticated, local],
+    [isAuthenticated, local, write],
   );
 
   const importReadings = useCallback(
@@ -214,7 +264,7 @@ function ConvexReadingsLive({ children }: { children: ReactNode }) {
       }
       return await importMutation({
         readings: incoming,
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timeZone: deviceTimeZone(),
       });
     },
     [importMutation, isAuthenticated, local],
@@ -226,22 +276,9 @@ function ConvexReadingsLive({ children }: { children: ReactNode }) {
         await local.updateReading(id, input);
         return;
       }
-      await updateMutation({
-        id: id as never,
-        valueMgDl: input.valueMgDl,
-        context: input.context,
-        postMealOffset: input.postMealOffset,
-        note: input.note,
-        takenAt: input.takenAt,
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        ...(input.photos ? { photos: input.photos as never } : {}),
-        ...(input.photoStorageId
-          ? { photoStorageId: input.photoStorageId as never }
-          : {}),
-        ...(input.photoUrl ? { photoUrl: input.photoUrl } : {}),
-      });
+      await write({ kind: "update", id, input }, { readingId: id, mealId: id });
     },
-    [isAuthenticated, local, updateMutation],
+    [isAuthenticated, local, write],
   );
 
   const archiveReading = useCallback(
@@ -250,39 +287,187 @@ function ConvexReadingsLive({ children }: { children: ReactNode }) {
         await local.archiveReading(id);
         return;
       }
-      await archiveMutation({ id: id as never });
+      await write({ kind: "archive", id }, { readingId: id, mealId: id });
     },
-    [archiveMutation, isAuthenticated, local],
+    [isAuthenticated, local, write],
   );
 
-  const value = useMemo<ReadingsContextValue>(() => {
-    if (!isAuthenticated) {
-      return local;
+  const restoreReading = useCallback(
+    async (id: string) => {
+      if (!isAuthenticated) return;
+      await write({ kind: "restore", id }, { readingId: id, mealId: id });
+    },
+    [isAuthenticated, write],
+  );
+
+  const applyRememberedNote = useCallback(
+    async (mealId: string) => {
+      if (!isAuthenticated) return;
+      await write({ kind: "apply-note", mealId }, { readingId: mealId, mealId });
+    },
+    [isAuthenticated, write],
+  );
+
+  const chooseClash = useCallback(
+    async (id: string, choice: "keep" | "drop") => {
+      const next = choose(getDeviceCarnet(), id, choice, {
+        now: Date.now(),
+        archivedReadingId: newClientId(),
+      });
+      setDeviceCarnet(next);
+      await flush().catch(() => {});
+    },
+    [flush],
+  );
+
+  const signOutCarnet = useCallback(async () => {
+    const result = signOutDevice(getDeviceCarnet(), sharedRef.current, deviceTimeZone());
+    if (result.status === "stay") {
+      setDeviceCarnet(result.device);
+      toast.error(result.reason === "clash" ? t("clash.signOut") : t("clash.offlineSignOut"));
+      return result.reason;
     }
-    const mapped = map(convexReadings ?? [], (doc) => mapConvexReading(doc));
-    const readings = sortReadings(mapped);
+    try {
+      if (result.outbound.length > 0) {
+        await applyCatchUp({
+          changes: outboundChanges(result.outbound) as never,
+          timeZone: deviceTimeZone(),
+        });
+      }
+    } catch {
+      toast.error(t("clash.offlineSignOut"));
+      return "offline" as const;
+    }
+    clearDeviceCarnet();
+    await signOut();
+    return "cleared" as const;
+  }, [applyCatchUp, signOut]);
+
+  const value = useMemo<ReadingsContextValue>(() => {
+    if (!isAuthenticated) return local;
+    const opened = device.base !== null;
+    const sharedLog = snapshot ? logFromServer(snapshot) : null;
+    const seen = view(
+      opened
+        ? device
+        : sharedLog
+          ? { ...emptyDeviceCarnet(), base: sharedLog, local: sharedLog }
+          : emptyDeviceCarnet(),
+    );
+    const readings = sortReadings(seen.readings);
     return {
       readings,
-      ready: !isLoading && convexReadings !== undefined,
+      archived: seen.archived,
+      ready: opened || (!isLoading && snapshot !== undefined),
+      clashes: seen.clashes,
       addReading,
       importReadings,
       updateReading,
       archiveReading,
+      restoreReading,
+      applyRememberedNote,
+      chooseClash,
+      signOutCarnet,
       uploadPhoto,
       getReading: (id: string) => find(readings, (reading) => reading._id === id),
     };
   }, [
     addReading,
+    applyRememberedNote,
     archiveReading,
-    convexReadings,
+    chooseClash,
+    device,
     importReadings,
     isAuthenticated,
     isLoading,
     local,
+    restoreReading,
+    signOutCarnet,
+    snapshot,
     updateReading,
     uploadPhoto,
   ]);
 
+  return (
+    <ReadingsContext.Provider value={value}>{children}</ReadingsContext.Provider>
+  );
+}
+
+function OfflineCarnetReadings({ children }: { children: ReactNode }) {
+  const device = useSyncExternalStore(
+    subscribeDeviceCarnet,
+    getDeviceCarnet,
+    getDeviceCarnetServerSnapshot,
+  );
+  const seen = view(device);
+  const readings = sortReadings(seen.readings);
+  const value = useMemo<ReadingsContextValue>(
+    () => ({
+      readings,
+      archived: seen.archived,
+      ready: true,
+      clashes: seen.clashes,
+      addReading: async (input) => {
+        const next = record(
+          getDeviceCarnet(),
+          { kind: "save", input },
+          recordMeta(newClientId(), newClientId(), "member"),
+        );
+        setDeviceCarnet(next);
+      },
+      importReadings: async () => ({ inserted: 0, skipped: 0 }),
+      updateReading: async (id, input) => {
+        setDeviceCarnet(
+          record(
+            getDeviceCarnet(),
+            { kind: "update", id, input },
+            recordMeta(id, id, "member"),
+          ),
+        );
+      },
+      archiveReading: async (id) => {
+        setDeviceCarnet(
+          record(
+            getDeviceCarnet(),
+            { kind: "archive", id },
+            recordMeta(id, id, "member"),
+          ),
+        );
+      },
+      restoreReading: async (id) => {
+        setDeviceCarnet(
+          record(
+            getDeviceCarnet(),
+            { kind: "restore", id },
+            recordMeta(id, id, "member"),
+          ),
+        );
+      },
+      applyRememberedNote: async (mealId) => {
+        setDeviceCarnet(
+          record(
+            getDeviceCarnet(),
+            { kind: "apply-note", mealId },
+            recordMeta(mealId, mealId, "member"),
+          ),
+        );
+      },
+      chooseClash: async (id, choice) => {
+        setDeviceCarnet(
+          choose(getDeviceCarnet(), id, choice, {
+            now: Date.now(),
+            archivedReadingId: newClientId(),
+          }),
+        );
+      },
+      signOutCarnet: async () => {
+        toast.error(t("clash.offlineSignOut"));
+        return "offline";
+      },
+      getReading: (id: string) => find(readings, (reading) => reading._id === id),
+    }),
+    [readings, seen.archived, seen.clashes],
+  );
   return (
     <ReadingsContext.Provider value={value}>{children}</ReadingsContext.Provider>
   );
@@ -300,12 +485,22 @@ class ReadingsQueryBoundary extends Component<
     return { error };
   }
 
+  componentDidCatch(error: Error) {
+    if (/not authenticated/i.test(error.message)) {
+      clearDeviceCarnet();
+    }
+  }
+
   private retry = () => {
     this.setState((state) => ({ error: null, nonce: state.nonce + 1 }));
   };
 
   render() {
     if (this.state.error) {
+      const revoked = /not authenticated/i.test(this.state.error.message);
+      if (deviceCarnetOpened() && !revoked) {
+        return <OfflineCarnetReadings>{this.props.children}</OfflineCarnetReadings>;
+      }
       return <JournalUnavailable fullScreen onRetry={this.retry} />;
     }
     return <Fragment key={this.state.nonce}>{this.props.children}</Fragment>;
@@ -318,6 +513,10 @@ export function ConvexReadingsProvider({ children }: { children: ReactNode }) {
       <ConvexReadingsLive>{children}</ConvexReadingsLive>
     </ReadingsQueryBoundary>
   );
+}
+
+export function useReadingsOptional(): ReadingsContextValue | null {
+  return useContext(ReadingsContext);
 }
 
 export function useReadings(): ReadingsContextValue {

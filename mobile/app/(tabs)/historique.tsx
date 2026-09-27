@@ -9,6 +9,7 @@ import { Screen } from "@/components/screen";
 import { AppHeader } from "@/components/header";
 import { Disclaimer } from "@/components/disclaimer";
 import { HistoryGrid } from "@/components/history-grid";
+import { CarnetConflicts } from "@/components/carnet-conflicts";
 import { ReadingsList } from "@/components/reading-list";
 import { useReadings } from "@/providers/readings-provider";
 import { colors } from "@/theme";
@@ -34,6 +35,7 @@ export default function HistoryRoute() {
         />
       ) : (
         <>
+          <CarnetConflicts />
           {size(days) === 0 ? (
             <ReadingsList
               readings={[]}

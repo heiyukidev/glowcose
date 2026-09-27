@@ -275,8 +275,12 @@ export function AddReadingForm({
       const nextPhotos = await resolveUploadedMealPhotos(photos, async (photo) => {
         if (photo.blob) {
           if (uploadPhoto) {
-            const storageId = await uploadPhoto(photo.blob);
-            return { storageId };
+            try {
+              const storageId = await uploadPhoto(photo.blob);
+              return { storageId };
+            } catch {
+              return { url: await blobToDataUrl(photo.blob) };
+            }
           }
           return { url: await blobToDataUrl(photo.blob) };
         }

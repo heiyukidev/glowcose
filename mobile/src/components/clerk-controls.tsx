@@ -2,10 +2,13 @@ import { Alert, Pressable, StyleSheet, Text } from "react-native";
 import { useAuth, useUser } from "@clerk/expo";
 import { useHostedAuth } from "@clerk/expo/hosted-auth";
 
+import { useReadingsOptional } from "@/providers/readings-provider";
+import { t } from "@glowcose/core";
 import { colors } from "@/theme";
 
 export function ClerkControls() {
   const { isSignedIn, signOut } = useAuth();
+  const readings = useReadingsOptional();
   const { user } = useUser();
   const { startHostedAuth } = useHostedAuth();
 
@@ -13,12 +16,16 @@ export function ClerkControls() {
     return (
       <Pressable
         onPress={() => {
+          if (readings) {
+            void readings.signOutCarnet();
+            return;
+          }
           void signOut();
         }}
         style={styles.ghostBtn}
       >
         <Text style={styles.ghostLabel} numberOfLines={1}>
-          {user?.primaryEmailAddress?.emailAddress ?? "Compte"}
+          {user?.primaryEmailAddress?.emailAddress ?? t("account.signOut")}
         </Text>
       </Pressable>
     );

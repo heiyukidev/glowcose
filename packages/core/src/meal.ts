@@ -160,6 +160,7 @@ export type StoredMeal = {
   photos: MealPhoto[];
   createdAt: number;
   archivedAt?: number;
+  rememberedNote?: string;
 };
 
 export type StoredReading = {
@@ -174,6 +175,7 @@ export type StoredReading = {
   takenAt: number;
   createdAt: number;
   archivedAt?: number;
+  rememberedNote?: string;
 };
 
 export type LocalLog = {
@@ -252,7 +254,13 @@ function archiveEmptyMeals(log: LocalLog, now: number): LocalLog {
 export function addReadingToLog(
   log: LocalLog,
   input: NewReading,
-  meta: { readingId: string; mealId: string; userId: string; now: number },
+  meta: {
+    readingId: string;
+    mealId: string;
+    userId: string;
+    now: number;
+    timeZone?: string;
+  },
   mode: "replace" | "lift" = "replace",
 ): LocalLog {
   input = { ...input, note: clampNote(input.note) };
@@ -262,6 +270,7 @@ export function addReadingToLog(
     slot,
     input.takenAt,
     input.context,
+    meta.timeZone,
   );
   let meals = log.meals;
   let mealId = match?.id;
@@ -304,7 +313,7 @@ export function updateReadingInLog(
   log: LocalLog,
   id: string,
   input: NewReading,
-  meta: { mealId: string; now: number },
+  meta: { mealId: string; now: number; timeZone?: string },
 ): LocalLog {
   const existing = find(log.readings, (reading) => reading._id === id);
   if (!existing || existing.archivedAt) return log;
@@ -315,6 +324,7 @@ export function updateReadingInLog(
     slot,
     input.takenAt,
     input.context,
+    meta.timeZone,
   );
   let mealId = match?.id;
   if (slot === "other") {
@@ -336,6 +346,7 @@ export function updateReadingInLog(
           slot,
           input.takenAt,
           input.context,
+          meta.timeZone,
         )
       : undefined;
     mealId = stillFits ? existing.mealId : meta.mealId;

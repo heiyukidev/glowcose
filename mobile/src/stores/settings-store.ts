@@ -20,6 +20,7 @@ type CarnetSettingsRemote = {
 };
 
 let carnetSettingsRemote: CarnetSettingsRemote | null = null;
+let carnetSettingsDirty = false;
 
 export function setCarnetSettingsRemote(
   remote: CarnetSettingsRemote | null,
@@ -27,11 +28,27 @@ export function setCarnetSettingsRemote(
   carnetSettingsRemote = remote;
 }
 
+export function hasPendingCarnetSettings(): boolean {
+  return carnetSettingsDirty;
+}
+
+export function markCarnetSettingsSynced(): void {
+  carnetSettingsDirty = false;
+}
+
 function syncCarnetSettings(patch: {
   diabetesType?: DiabetesType;
   thresholds?: ThresholdPreset;
 }): void {
-  void carnetSettingsRemote?.updateSettings(patch);
+  carnetSettingsDirty = true;
+  void carnetSettingsRemote?.updateSettings(patch).then(
+    () => {
+      carnetSettingsDirty = false;
+    },
+    () => {
+      carnetSettingsDirty = true;
+    },
+  );
 }
 
 const STORAGE_KEY = "glowcose.settings.v2";

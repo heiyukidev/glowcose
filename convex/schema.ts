@@ -83,9 +83,12 @@ export default defineSchema({
     photos: v.array(mealPhoto),
     createdAt: v.number(),
     archivedAt: v.optional(v.number()),
+    clientId: v.optional(v.string()),
+    rememberedNote: v.optional(v.string()),
   })
     .index("by_carnet", ["carnetId"])
-    .index("by_carnet_and_slot", ["carnetId", "slot"]),
+    .index("by_carnet_and_slot", ["carnetId", "slot"])
+    .index("by_carnet_and_clientId", ["carnetId", "clientId"]),
 
   readings: defineTable({
     userId: v.string(),
@@ -101,10 +104,13 @@ export default defineSchema({
     takenAt: v.number(),
     createdAt: v.number(),
     archivedAt: v.optional(v.number()),
+    clientId: v.optional(v.string()),
+    rememberedNote: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_user_takenAt", ["userId", "takenAt"])
     .index("by_carnet", ["carnetId"])
     .index("by_carnet_takenAt", ["carnetId", "takenAt"])
-    .index("by_meal", ["mealId"]),
+    .index("by_meal", ["mealId"])
+    .index("by_carnet_and_clientId", ["carnetId", "clientId"]),
 });

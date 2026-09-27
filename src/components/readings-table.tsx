@@ -29,6 +29,7 @@ import {
   readingStatus,
   type Reading,
 } from "@/lib/glucose";
+import { CarnetConflicts } from "@/components/carnet-conflicts";
 import { MEAL_SLOT_LABELS, todayMealCards } from "@/lib/meal";
 import { ajouterHref } from "@/lib/ajouter-href";
 import { t } from "@/lib/i18n";
@@ -177,6 +178,7 @@ function MealDayCards({
 
   return (
     <div className="space-y-5">
+      <CarnetConflicts />
       {map(meals, (meal) => (
         <MealCard key={meal.id} meal={meal} dayKey={dayKey} />
       ))}

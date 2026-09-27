@@ -5,7 +5,25 @@ import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
+import { useReadingsOptional } from "@/components/readings-provider";
+import { t } from "@/lib/i18n";
 import { isClerkConfigured } from "@/lib/runtime";
+
+function SignOutControl() {
+  const readings = useReadingsOptional();
+  if (!readings) return null;
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      onClick={() => {
+        void readings.signOutCarnet();
+      }}
+    >
+      {t("account.signOut")}
+    </Button>
+  );
+}
 
 export function AppHeader() {
   const clerkEnabled = isClerkConfigured();
@@ -26,7 +44,12 @@ export function AppHeader() {
               </SignInButton>
             </Show>
             <Show when="signed-in">
-              <UserButton />
+              <SignOutControl />
+              <UserButton>
+                <UserButton.MenuItems>
+                  <UserButton.Action label="manageAccount" />
+                </UserButton.MenuItems>
+              </UserButton>
             </Show>
           </>
         ) : null}

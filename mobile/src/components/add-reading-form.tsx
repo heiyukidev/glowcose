@@ -243,11 +243,15 @@ export function AddReadingForm({
       const nextPhotos = await resolveUploadedMealPhotos(photos, async (photo) => {
         if (photo.localUri && !photo.storageId) {
           if (uploadPhoto) {
-            const storageId = await uploadPhoto({
-              uri: photo.localUri,
-              mimeType: photo.mimeType,
-            });
-            return { storageId };
+            try {
+              const storageId = await uploadPhoto({
+                uri: photo.localUri,
+                mimeType: photo.mimeType,
+              });
+              return { storageId };
+            } catch {
+              return { url: photo.localUri };
+            }
           }
           return { url: photo.localUri };
         }

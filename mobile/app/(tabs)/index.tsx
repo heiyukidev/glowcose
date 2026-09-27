@@ -21,6 +21,7 @@ import { Screen } from "@/components/screen";
 import { AppHeader } from "@/components/header";
 import { Disclaimer } from "@/components/disclaimer";
 import { RappelOfferToast } from "@/components/rappel-offer-toast";
+import { CarnetConflicts } from "@/components/carnet-conflicts";
 import { ReadingsList } from "@/components/reading-list";
 import { useRappels } from "@/hooks/use-rappels";
 import { scheduleRappel } from "@/lib/rappel-notifications";
@@ -178,13 +179,16 @@ export default function TodayScreen() {
           style={styles.skeleton}
         />
       ) : (
-        <ReadingsList
-          readings={dayReadings}
-          byMeal
-          dayKey={dayKey}
-          emptyTitle={t("home.emptyTitle")}
-          emptyBody={t("home.emptyBody")}
-        />
+        <View>
+          <CarnetConflicts />
+          <ReadingsList
+            readings={dayReadings}
+            byMeal
+            dayKey={dayKey}
+            emptyTitle={t("home.emptyTitle")}
+            emptyBody={t("home.emptyBody")}
+          />
+        </View>
       )}
       <Disclaimer style={styles.disclaimer} />
     </Screen>

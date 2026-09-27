@@ -4,6 +4,7 @@ import { useState } from "react";
 import { size, take } from "lodash";
 
 import { AppHeader } from "@/components/app-header";
+import { CarnetConflicts } from "@/components/carnet-conflicts";
 import { Disclaimer } from "@/components/disclaimer";
 import { HistoryGrid } from "@/components/history-grid";
 import { LoadingStatus } from "@/components/loading-status";
@@ -32,6 +33,7 @@ export function HistoryScreen() {
         </LoadingStatus>
       ) : (
         <>
+          <CarnetConflicts />
           {size(days) === 0 ? (
             <ReadingsList
               readings={[]}
