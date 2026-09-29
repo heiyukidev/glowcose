@@ -13,6 +13,7 @@ export function CarnetConflicts() {
     clashes,
     archived,
     chooseClash,
+    dismissArchive,
     restoreReading,
     applyRememberedNote,
   } = useReadings();
@@ -60,6 +61,13 @@ export function CarnetConflicts() {
                     {formatPrimary(reading.valueMgDl, settings.unit)}
                     {note ? ` · ${note}` : ""}
                   </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void dismissArchive(reading._id)}
+                  >
+                    {t("archive.dismiss")}
+                  </Button>
                   <Button
                     size="sm"
                     variant="outline"

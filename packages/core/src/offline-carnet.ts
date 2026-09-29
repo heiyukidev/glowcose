@@ -112,13 +112,32 @@ export function view(device: DeviceCarnet): CarnetView {
   }
   return {
     readings: presentLocalLog(device.local),
-    clashes: map(device.clashes, (clash) => ({
-      id: clash.id,
-      mine: presentClaim(device.local, clash.localReadingId),
-      shared: presentStoredReading(clash.sharedReading, [clash.sharedMeal]),
-    })),
+    clashes: compact(
+      map(device.clashes, (clash) => {
+        if (
+          device.base &&
+          (clash.kind === "catch-up" || clash.kind === "note") &&
+          !diverged(
+            device.local,
+            findReading(device.local, clash.localReadingId),
+            device.base,
+            findReading(device.base, clash.localReadingId),
+          )
+        ) {
+          return null;
+        }
+        return {
+          id: clash.id,
+          mine: presentClaim(device.local, clash.localReadingId),
+          shared: presentStoredReading(clash.sharedReading, [clash.sharedMeal]),
+        };
+      }),
+    ),
     archived: map(
-      filter(device.local.readings, (reading) => Boolean(reading.archivedAt)),
+      filter(device.local.readings, (reading) => {
+        if (!reading.archivedAt || !device.base) return false;
+        return !findReading(device.base, reading._id)?.archivedAt;
+      }),
       (reading) => {
         const presented = presentStoredReading(reading, device.local.meals);
         return reading.rememberedNote
@@ -188,7 +207,15 @@ export function catchUp(
     const mine = localClaims.get(key);
     const theirs = sharedClaims.get(key);
     const previous = baseClaims.get(key);
-    if (mine && theirs && contentConflicts(local, shared, mine, theirs)) {
+    const localChanged = Boolean(mine) && diverged(local, mine, base, previous);
+    const sharedChanged = Boolean(theirs) && diverged(shared, theirs, base, previous);
+    if (
+      mine &&
+      theirs &&
+      localChanged &&
+      sharedChanged &&
+      contentConflicts(local, shared, mine, theirs)
+    ) {
       clashes.push({
         id: key,
         kind: noteOnly(local, shared, mine, theirs) ? "note" : "catch-up",
@@ -206,7 +233,7 @@ export function catchUp(
       pending = enqueue(pending, changeFor(local, mine));
       continue;
     }
-    if (theirs && !sameReading(theirs, previous) && (!mine || sameReading(mine, previous))) {
+    if (theirs && sharedChanged && !localChanged) {
       local = adoptSharedClaim(local, shared, mine, theirs);
       continue;
     }
@@ -304,6 +331,23 @@ export function choose(
     settled: uniqSorted([...device.settled, clash.id]),
     pending,
   };
+}
+
+export function dismissArchive(device: DeviceCarnet, readingId: string): DeviceCarnet {
+  if (!device.base) return device;
+  const reading = findReading(device.local, readingId);
+  if (!reading?.archivedAt) return device;
+  const previous = findReading(device.base, readingId);
+  const readings = previous
+    ? map(device.base.readings, (item) =>
+        item._id === readingId ? { ...item, archivedAt: reading.archivedAt } : item,
+      )
+    : [...device.base.readings, reading];
+  return { ...device, base: { ...device.base, readings } };
+}
+
+export function usesUnsignedJournal(device: DeviceCarnet, authenticated: boolean): boolean {
+  return !authenticated && device.base === null;
 }
 
 export function signOut(
@@ -528,6 +572,17 @@ function noteOnly(
     (mine.postMealOffset ?? null) === (theirs.postMealOffset ?? null) &&
     noteOf(local, mine) !== noteOf(shared, theirs)
   );
+}
+
+function diverged(
+  log: LocalLog,
+  reading: StoredReading | undefined,
+  base: LocalLog,
+  previous: StoredReading | undefined,
+): boolean {
+  if (!reading || !previous) return Boolean(reading) !== Boolean(previous);
+  if (!sameReading(reading, previous)) return true;
+  return noteOf(log, reading) !== noteOf(base, previous);
 }
 
 function contentConflicts(

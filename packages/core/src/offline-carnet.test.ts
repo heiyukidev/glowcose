@@ -1,11 +1,13 @@
 import { describe, expect, test } from "vitest";
-import { map, sortBy } from "lodash";
+import { find, map, sortBy } from "lodash";
 
 import type { LocalLog, StoredMeal, StoredReading } from "./meal";
 import {
   catchUp,
   choose,
+  dismissArchive,
   emptyDeviceCarnet,
+  usesUnsignedJournal,
   record,
   signOut,
   view,
@@ -485,6 +487,129 @@ describe("offline carnet", () => {
       expect.objectContaining({ _id: "r1", valueMgDl: 142, note: "pâtes" }),
     ]);
     expect(view(restored).clashes).toEqual([]);
+  });
+
+  test("a Reading this device did not change is adopted, not a Clash", () => {
+    const takenAt = at("2026-09-27T13:00:00+02:00");
+    const opened = open({
+      meals: [meal({ _id: "lunch", slot: "lunch", anchorAt: takenAt })],
+      readings: [
+        reading({
+          _id: "r1",
+          mealId: "lunch",
+          valueMgDl: 85,
+          context: "before_lunch",
+          takenAt,
+        }),
+      ],
+    });
+    const shared: LocalLog = {
+      meals: opened.local.meals,
+      readings: [
+        reading({
+          _id: "r1",
+          mealId: "lunch",
+          valueMgDl: 93,
+          context: "before_lunch",
+          takenAt,
+        }),
+      ],
+    };
+    const caught = catchUp(opened, shared, TZ);
+    expect(view(caught.device).clashes).toEqual([]);
+    expect(view(caught.device).readings).toEqual([
+      expect.objectContaining({ _id: "r1", valueMgDl: 93 }),
+    ]);
+    expect(caught.outbound).toEqual([]);
+  });
+
+  test("an archived Reading already on the Carnet is not a card to dismiss", () => {
+    const takenAt = at("2026-09-27T13:00:00+02:00");
+    const opened = open({
+      meals: [meal({ _id: "lunch", slot: "lunch", anchorAt: takenAt })],
+      readings: [
+        reading({
+          _id: "live",
+          mealId: "lunch",
+          valueMgDl: 93,
+          context: "before_lunch",
+          takenAt,
+        }),
+        reading({
+          _id: "old",
+          mealId: "lunch",
+          valueMgDl: 85,
+          context: "before_lunch",
+          takenAt,
+          archivedAt: takenAt,
+        }),
+      ],
+    });
+    expect(view(opened).archived).toEqual([]);
+    expect(view(opened).clashes).toEqual([]);
+    expect(view(opened).readings).toEqual([
+      expect.objectContaining({ _id: "live", valueMgDl: 93 }),
+    ]);
+  });
+
+  test("choosing a Clash stays chosen while the shared Carnet still has the other value", () => {
+    const opened = clashOverLunch();
+    const chosen = choose(opened.device, opened.clashId, "drop", {
+      now: at("2026-09-27T15:00:00+02:00"),
+      archivedReadingId: "r-archived",
+    });
+    const once = catchUp(chosen, opened.shared, TZ);
+    const twice = catchUp(once.device, opened.shared, TZ);
+    expect(view(twice.device).clashes).toEqual([]);
+    expect(view(twice.device).readings).toEqual([
+      expect.objectContaining({ valueMgDl: 138 }),
+    ]);
+  });
+
+  test("Fermer hides an archive this device just set aside and leaves the Reading archived", () => {
+    const opened = clashOverLunch();
+    const chosen = choose(opened.device, opened.clashId, "drop", {
+      now: at("2026-09-27T15:00:00+02:00"),
+      archivedReadingId: "r-archived",
+    });
+    expect(view(chosen).archived).toEqual([
+      expect.objectContaining({ _id: "r-local", valueMgDl: 142 }),
+    ]);
+    const hidden = dismissArchive(chosen, "r-local");
+    expect(view(hidden).archived).toEqual([]);
+    expect(view(hidden).readings).toEqual([
+      expect.objectContaining({ valueMgDl: 138 }),
+    ]);
+    expect(
+      find(hidden.local.readings, (reading) => reading._id === "r-local")?.archivedAt,
+    ).toBeTruthy();
+  });
+
+  test("an opened Carnet stays the log when the session drops", () => {
+    expect(usesUnsignedJournal(emptyDeviceCarnet(), false)).toBe(true);
+    expect(usesUnsignedJournal(open(), false)).toBe(false);
+    expect(usesUnsignedJournal(emptyDeviceCarnet(), true)).toBe(false);
+  });
+
+  test("a save on an opened Carnet stays there when the session is offline", () => {
+    const opened = open();
+    const saved = record(
+      opened,
+      {
+        kind: "save",
+        input: {
+          valueMgDl: 110,
+          context: "before_breakfast",
+          takenAt: at("2026-09-27T08:00:00+02:00"),
+        },
+      },
+      meta({ readingId: "plane", mealId: "plane-meal" }),
+    );
+    const caught = catchUp(saved, { meals: [], readings: [] }, TZ);
+    expect(view(caught.device).readings).toEqual([
+      expect.objectContaining({ _id: "plane", valueMgDl: 110 }),
+    ]);
+    expect(caught.outbound.map((change) => change.reading._id)).toEqual(["plane"]);
   });
 
   test("restoring onto an occupied Phase is a Clash", () => {

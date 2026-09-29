@@ -32,11 +32,13 @@ import { planImport } from "@/lib/csv-import";
 import {
   catchUp,
   choose,
+  dismissArchive,
   emptyDeviceCarnet,
   logFromServer,
   outboundChanges,
   record,
   signOut as signOutDevice,
+  usesUnsignedJournal,
   view,
   type ClashView,
 } from "../../packages/core/src/offline-carnet";
@@ -70,6 +72,7 @@ type ReadingsContextValue = {
   archiveReading: (id: string) => Promise<void>;
   restoreReading: (id: string) => Promise<void>;
   applyRememberedNote: (mealId: string) => Promise<void>;
+  dismissArchive: (id: string) => Promise<void>;
   chooseClash: (id: string, choice: "keep" | "drop") => Promise<void>;
   signOutCarnet: () => Promise<"cleared" | "offline" | "clash">;
   getReading: (id: string) => Reading | undefined;
@@ -131,6 +134,7 @@ function useLocalReadingsState(): ReadingsContextValue {
       archiveReading,
       restoreReading: async () => {},
       applyRememberedNote: async () => {},
+      dismissArchive: async () => {},
       chooseClash: async () => {},
       signOutCarnet: async () => "cleared" as const,
       getReading,
@@ -248,7 +252,7 @@ function ConvexReadingsLive({ children }: { children: ReactNode }) {
 
   const addReading = useCallback(
     async (input: NewReading) => {
-      if (!isAuthenticated) {
+      if (usesUnsignedJournal(getDeviceCarnet(), isAuthenticated)) {
         await local.addReading(input);
         return;
       }
@@ -272,7 +276,7 @@ function ConvexReadingsLive({ children }: { children: ReactNode }) {
 
   const updateReading = useCallback(
     async (id: string, input: NewReading) => {
-      if (!isAuthenticated) {
+      if (usesUnsignedJournal(getDeviceCarnet(), isAuthenticated)) {
         await local.updateReading(id, input);
         return;
       }
@@ -283,7 +287,7 @@ function ConvexReadingsLive({ children }: { children: ReactNode }) {
 
   const archiveReading = useCallback(
     async (id: string) => {
-      if (!isAuthenticated) {
+      if (usesUnsignedJournal(getDeviceCarnet(), isAuthenticated)) {
         await local.archiveReading(id);
         return;
       }
@@ -294,7 +298,7 @@ function ConvexReadingsLive({ children }: { children: ReactNode }) {
 
   const restoreReading = useCallback(
     async (id: string) => {
-      if (!isAuthenticated) return;
+      if (usesUnsignedJournal(getDeviceCarnet(), isAuthenticated)) return;
       await write({ kind: "restore", id }, { readingId: id, mealId: id });
     },
     [isAuthenticated, write],
@@ -302,10 +306,18 @@ function ConvexReadingsLive({ children }: { children: ReactNode }) {
 
   const applyRememberedNote = useCallback(
     async (mealId: string) => {
-      if (!isAuthenticated) return;
+      if (usesUnsignedJournal(getDeviceCarnet(), isAuthenticated)) return;
       await write({ kind: "apply-note", mealId }, { readingId: mealId, mealId });
     },
     [isAuthenticated, write],
+  );
+
+  const hideArchive = useCallback(
+    async (id: string) => {
+      if (usesUnsignedJournal(getDeviceCarnet(), isAuthenticated)) return;
+      setDeviceCarnet(dismissArchive(getDeviceCarnet(), id));
+    },
+    [isAuthenticated],
   );
 
   const chooseClash = useCallback(
@@ -344,7 +356,7 @@ function ConvexReadingsLive({ children }: { children: ReactNode }) {
   }, [applyCatchUp, signOut]);
 
   const value = useMemo<ReadingsContextValue>(() => {
-    if (!isAuthenticated) return local;
+    if (usesUnsignedJournal(device, isAuthenticated)) return local;
     const opened = device.base !== null;
     const sharedLog = snapshot ? logFromServer(snapshot) : null;
     const seen = view(
@@ -366,6 +378,7 @@ function ConvexReadingsLive({ children }: { children: ReactNode }) {
       archiveReading,
       restoreReading,
       applyRememberedNote,
+      dismissArchive: hideArchive,
       chooseClash,
       signOutCarnet,
       uploadPhoto,
@@ -377,6 +390,7 @@ function ConvexReadingsLive({ children }: { children: ReactNode }) {
     archiveReading,
     chooseClash,
     device,
+    hideArchive,
     importReadings,
     isAuthenticated,
     isLoading,
@@ -452,6 +466,9 @@ function OfflineCarnetReadings({ children }: { children: ReactNode }) {
           ),
         );
       },
+      dismissArchive: async (id) => {
+        setDeviceCarnet(dismissArchive(getDeviceCarnet(), id));
+      },
       chooseClash: async (id, choice) => {
         setDeviceCarnet(
           choose(getDeviceCarnet(), id, choice, {
@@ -486,7 +503,7 @@ class ReadingsQueryBoundary extends Component<
   }
 
   componentDidCatch(error: Error) {
-    if (/not authenticated/i.test(error.message)) {
+    if (/not authenticated/i.test(error.message) && !deviceCarnetOpened()) {
       clearDeviceCarnet();
     }
   }
@@ -497,8 +514,7 @@ class ReadingsQueryBoundary extends Component<
 
   render() {
     if (this.state.error) {
-      const revoked = /not authenticated/i.test(this.state.error.message);
-      if (deviceCarnetOpened() && !revoked) {
+      if (deviceCarnetOpened()) {
         return <OfflineCarnetReadings>{this.props.children}</OfflineCarnetReadings>;
       }
       return <JournalUnavailable fullScreen onRetry={this.retry} />;

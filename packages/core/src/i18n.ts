@@ -77,6 +77,7 @@ const FRENCH_MESSAGES = {
   "clash.offlineSignOut": "Ouvrez Gluciel en ligne pour envoyer les mesures, puis déconnectez-vous.",
   "account.signOut": "Se déconnecter",
   "archive.title": "Mesures archivées",
+  "archive.dismiss": "Fermer",
   "archive.restore": "Restaurer",
   "archive.applyNote": "Utiliser cette note",
   "rappel.schedule": "Rappeler dans 2 h",

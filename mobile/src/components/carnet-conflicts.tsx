@@ -11,6 +11,7 @@ export function CarnetConflicts() {
     clashes,
     archived,
     chooseClash,
+    dismissArchive,
     restoreReading,
     applyRememberedNote,
   } = useReadings();
@@ -57,6 +58,12 @@ export function CarnetConflicts() {
                   {note ? ` · ${note}` : ""}
                 </Text>
                 <View style={styles.row}>
+                  <Pressable
+                    style={styles.outline}
+                    onPress={() => void dismissArchive(reading._id)}
+                  >
+                    <Text style={styles.outlineLabel}>{t("archive.dismiss")}</Text>
+                  </Pressable>
                   <Pressable
                     style={styles.outline}
                     onPress={() => void restoreReading(reading._id)}
