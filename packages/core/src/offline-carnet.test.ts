@@ -566,6 +566,42 @@ describe("offline carnet", () => {
     ]);
   });
 
+  test("a Member’s own Archive does not offer restore", () => {
+    const takenAt = at("2026-09-27T13:00:00+02:00");
+    const opened = open({
+      meals: [meal({ _id: "lunch", slot: "lunch", anchorAt: takenAt })],
+      readings: [
+        reading({
+          _id: "r1",
+          mealId: "lunch",
+          valueMgDl: 93,
+          context: "before_lunch",
+          takenAt,
+        }),
+      ],
+    });
+    const archived = record(opened, { kind: "archive", id: "r1" }, meta());
+    expect(view(archived).readings).toEqual([]);
+    expect(view(archived).archived).toEqual([]);
+    expect(
+      find(archived.local.readings, (reading) => reading._id === "r1")?.archivedAt,
+    ).toBeTruthy();
+  });
+
+  test("a Clash leftover stays restorable until Fermer, including after catch-up", () => {
+    const opened = clashOverLunch();
+    const chosen = choose(opened.device, opened.clashId, "drop", {
+      now: at("2026-09-27T15:00:00+02:00"),
+      archivedReadingId: "r-archived",
+    });
+    const caught = catchUp(chosen, opened.shared, TZ);
+    expect(view(caught.device).archived).toEqual([
+      expect.objectContaining({ _id: "r-local", valueMgDl: 142 }),
+    ]);
+    const hidden = dismissArchive(caught.device, "r-local");
+    expect(view(hidden).archived).toEqual([]);
+  });
+
   test("Fermer hides an archive this device just set aside and leaves the Reading archived", () => {
     const opened = clashOverLunch();
     const chosen = choose(opened.device, opened.clashId, "drop", {

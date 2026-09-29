@@ -49,6 +49,8 @@ export type DeviceCarnet = {
   clashes: OpenClash[];
   pending: OutboundChange[];
   settled: string[];
+  /** Readings a Clash set aside, still offered for restore until Fermer. */
+  aside: string[];
 };
 
 export type ClashView = {
@@ -103,6 +105,7 @@ export function emptyDeviceCarnet(): DeviceCarnet {
     clashes: [],
     pending: [],
     settled: [],
+    aside: [],
   };
 }
 
@@ -135,8 +138,8 @@ export function view(device: DeviceCarnet): CarnetView {
     ),
     archived: map(
       filter(device.local.readings, (reading) => {
-        if (!reading.archivedAt || !device.base) return false;
-        return !findReading(device.base, reading._id)?.archivedAt;
+        if (!reading.archivedAt) return false;
+        return includes(device.aside ?? [], reading._id);
       }),
       (reading) => {
         const presented = presentStoredReading(reading, device.local.meals);
@@ -180,6 +183,7 @@ export function catchUp(
         clashes: [],
         pending: [],
         settled: [],
+        aside: [],
       },
       outbound: [],
     };
@@ -255,6 +259,7 @@ export function catchUp(
     clashes,
     pending,
     settled,
+    aside: device.aside ?? [],
   };
   return { device: next, outbound: pending };
 }
@@ -323,6 +328,14 @@ export function choose(
   }
 
   const pending = enqueueChoice(device.pending, local, choice, clash, localReading, meta, sameReadingId);
+  const archivedId =
+    choice === "keep"
+      ? sameReadingId
+        ? meta.archivedReadingId
+        : clash.sharedReading._id
+      : sameReadingId
+        ? meta.archivedReadingId
+        : localReading._id;
 
   return {
     ...device,
@@ -330,6 +343,7 @@ export function choose(
     clashes: reject(device.clashes, (item) => item.id === clashId),
     settled: uniqSorted([...device.settled, clash.id]),
     pending,
+    aside: uniqSorted([...(device.aside ?? []), archivedId]),
   };
 }
 
@@ -343,7 +357,11 @@ export function dismissArchive(device: DeviceCarnet, readingId: string): DeviceC
         item._id === readingId ? { ...item, archivedAt: reading.archivedAt } : item,
       )
     : [...device.base.readings, reading];
-  return { ...device, base: { ...device.base, readings } };
+  return {
+    ...device,
+    base: { ...device.base, readings },
+    aside: reject(device.aside ?? [], (id) => id === readingId),
+  };
 }
 
 export function usesUnsignedJournal(device: DeviceCarnet, authenticated: boolean): boolean {
@@ -478,7 +496,11 @@ function restoreReading(
   if (!restored?.archivedAt) return device;
   const occupant = liveClaim(device.local, restored, meta.timeZone);
   if (!occupant || occupant._id === restored._id) {
-    return { ...device, local: revive(device.local, readingId) };
+    return {
+      ...device,
+      local: revive(device.local, readingId),
+      aside: reject(device.aside ?? [], (id) => id === readingId),
+    };
   }
   const key = claimKey(
     {

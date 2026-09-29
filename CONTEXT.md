@@ -61,7 +61,7 @@ Two claims on the same Phase of the same Meal when a device catches up, either t
 _Avoid_: Conflict, duplicate, sync error
 
 **Archive**:
-A Reading that stays in the Carnet and no longer occupies its Phase. A Member can restore it when that Phase is free. Restoring onto an occupied Phase is a Clash.
+A Reading that stays in the Carnet and no longer occupies its Phase. A Member’s own Archive cannot be restored. A Reading set aside by a Clash can be restored until that card is closed, and only when its Phase is free; an occupied Phase is a Clash.
 _Avoid_: Delete, remove
 
 **Rappel**:
