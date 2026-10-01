@@ -5,15 +5,8 @@ import { useConvexAuth, useConvexConnectionState } from "convex/react";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-/**
- * Thin top-edge progress bar while Clerk↔Convex session auth is settling
- * or any Convex request is in flight.
- */
-export function NetworkLoadingBar() {
-  const { isLoading: authLoading } = useConvexAuth();
-  const { hasInflightRequests } = useConvexConnectionState();
-  const busy = authLoading || hasInflightRequests;
-
+/** Thin top-edge indeterminate bar. */
+export function TopNetworkBar({ busy }: { busy: boolean }) {
   return (
     <div
       className={cn(
@@ -33,4 +26,16 @@ export function NetworkLoadingBar() {
       />
     </div>
   );
+}
+
+/**
+ * Thin top-edge progress bar while Clerk↔Convex session auth is settling
+ * or any Convex request is in flight.
+ */
+export function NetworkLoadingBar() {
+  const { isLoading: authLoading } = useConvexAuth();
+  const { hasInflightRequests } = useConvexConnectionState();
+  const busy = authLoading || hasInflightRequests;
+
+  return <TopNetworkBar busy={busy} />;
 }
