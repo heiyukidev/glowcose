@@ -12,6 +12,7 @@ import {
   CarnetProvider,
   DemoCarnetProvider,
 } from "@/components/carnet-provider";
+import { NetworkLoadingBar } from "@/components/network-loading-bar";
 import {
   ConvexReadingsProvider,
   LocalReadingsProvider,
@@ -57,6 +58,7 @@ function ConvexTree({ children }: { children: ReactNode }) {
 
   return (
     <ConvexProviderWithClerk client={client} useAuth={useAuth}>
+      <NetworkLoadingBar />
       <ConvexReadingsProvider>
         <CarnetProvider>{children}</CarnetProvider>
       </ConvexReadingsProvider>
