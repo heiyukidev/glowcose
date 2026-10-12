@@ -169,6 +169,7 @@ const FRENCH_MESSAGES = {
   "settings.bandOrder":
     "Hypo, vert puis orange, chacun entre 40 et 400 mg/dL.",
   "loading.journal": "Chargement du carnet…",
+  "loading.network": "Connexion en cours…",
   "error.title": "Le carnet n’a pas pu s’afficher.",
   "error.body":
     "La connexion a été interrompue. Les mesures déjà enregistrées sont conservées.",
