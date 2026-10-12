@@ -4,6 +4,7 @@ import { tokenCache } from "@clerk/expo/token-cache";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
 
+import { NetworkLoadingBar } from "@/components/network-loading-bar";
 import { PostHogIdentify } from "@/providers/posthog-identify";
 import {
   clerkPublishableKey,
@@ -39,6 +40,7 @@ function ConvexTree({ children }: { children: ReactNode }) {
 
   return (
     <ConvexProviderWithClerk client={client} useAuth={useAuth}>
+      <NetworkLoadingBar />
       <ConvexReadingsProvider>
         <CarnetProvider>{children}</CarnetProvider>
       </ConvexReadingsProvider>
