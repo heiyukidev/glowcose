@@ -1,3 +1,4 @@
+import { Text } from "react-native";
 import { Tabs } from "expo-router";
 import { CalendarDays, LineChart, Settings, Sun } from "lucide-react-native";
 
@@ -14,10 +15,18 @@ export default function TabLayout() {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
         },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "600",
-        },
+        tabBarLabel: ({ color, children }) => (
+          <Text
+            style={{
+              color,
+              fontSize: 11,
+              fontWeight: "600",
+              lineHeight: 14,
+            }}
+          >
+            {children}
+          </Text>
+        ),
       }}
     >
       <Tabs.Screen

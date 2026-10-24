@@ -31,22 +31,19 @@ import { colors } from "@/theme";
 
 const TONE: Record<
   DayScoreTone,
-  { backgroundColor: string; color: string; shadow: string }
+  { backgroundColor: string; color: string }
 > = {
   green: {
     backgroundColor: "#E5F6EA",
     color: colors.statusInFg,
-    shadow: colors.statusIn,
   },
   yellow: {
     backgroundColor: "#FBEED6",
     color: colors.statusHighFg,
-    shadow: colors.statusHigh,
   },
   red: {
     backgroundColor: "#F8E4DF",
     color: colors.statusAlertFg,
-    shadow: colors.statusAlert,
   },
 };
 
@@ -129,7 +126,6 @@ export default function TodayScreen() {
                   styles.score,
                   {
                     backgroundColor: TONE[tone].backgroundColor,
-                    shadowColor: TONE[tone].shadow,
                   },
                 ]}
               >
@@ -262,10 +258,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    shadowOpacity: 0.7,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 6,
   },
   scoreText: {
     fontSize: 13,

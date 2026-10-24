@@ -80,7 +80,7 @@ function BandFields({
   return (
     <div className="space-y-2" onBlur={commitFromGroup}>
       <div className="grid grid-cols-3 gap-2">
-        <div className="min-w-0">
+        <div className="flex min-w-0 flex-col gap-1">
           <Label className="text-[11px] text-muted-foreground">Hypo &lt;</Label>
           <Input
             inputMode="numeric"
@@ -93,7 +93,7 @@ function BandFields({
             }
           />
         </div>
-        <div className="min-w-0">
+        <div className="flex min-w-0 flex-col gap-1">
           <Label className="text-[11px] text-muted-foreground">Vert ≤</Label>
           <Input
             inputMode="numeric"
@@ -106,7 +106,7 @@ function BandFields({
             }
           />
         </div>
-        <div className="min-w-0">
+        <div className="flex min-w-0 flex-col gap-1">
           <Label className="text-[11px] text-muted-foreground">Orange ≤</Label>
           <Input
             inputMode="numeric"

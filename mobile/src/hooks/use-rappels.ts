@@ -3,6 +3,7 @@ import { find } from "lodash";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
+import { Platform } from "react-native";
 
 import {
   canOfferRappel,
@@ -95,6 +96,8 @@ export function useRappelNotificationResponse() {
   const router = useRouter();
 
   useEffect(() => {
+    if (Platform.OS === "web") return;
+
     function openFromData(data: { afterContext?: string } | undefined) {
       if (data?.afterContext) {
         router.push({
