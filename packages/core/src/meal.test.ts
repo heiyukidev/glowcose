@@ -1,6 +1,8 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  appendPickedPhotos,
+  assignedPhotos,
   findGroupedMeal,
   localDateKey,
   mealSlotForContext,
@@ -93,6 +95,29 @@ describe("mergeMealNotes", () => {
 
   test("does not duplicate the same note", () => {
     expect(mergeMealNotes("croissant", "croissant")).toBe("croissant");
+  });
+});
+
+describe("appendPickedPhotos", () => {
+  test("four picks of one file stay one photo", () => {
+    const picks = [
+      { url: "blob:1", sourceKey: "meal.jpg:10:1" },
+      { url: "blob:2", sourceKey: "meal.jpg:10:1" },
+      { url: "blob:3", sourceKey: "meal.jpg:10:1" },
+      { url: "blob:4", sourceKey: "meal.jpg:10:1" },
+    ];
+    expect(appendPickedPhotos([], picks)).toEqual([picks[0]]);
+  });
+});
+
+describe("assignedPhotos", () => {
+  test("drops a repeated url", () => {
+    expect(
+      assignedPhotos([
+        { url: "data:image/jpeg;base64,abc" },
+        { url: "data:image/jpeg;base64,abc" },
+      ]),
+    ).toEqual([{ url: "data:image/jpeg;base64,abc" }]);
   });
 });
 

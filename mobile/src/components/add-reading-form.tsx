@@ -43,6 +43,8 @@ import {
   type Reading,
   type ReadingContext,
   MAX_MEAL_PHOTOS,
+  appendPickedPhotos,
+  distinctPhotos,
   formMealKey,
   mealMediaForForm,
   photosAfterMealChange,
@@ -105,6 +107,7 @@ export function AddReadingForm({
       storageId?: string;
       localUri?: string;
       mimeType?: string;
+      sourceKey?: string;
     }[]
   >(() =>
     map(openingMedia.photos, (photo) => ({
@@ -164,12 +167,13 @@ export function AddReadingForm({
               url: asset.uri,
               localUri: asset.uri,
               mimeType: asset.mimeType,
+              sourceKey: asset.uri,
               storageId: undefined,
             }
           : undefined,
       ),
     );
-    setPhotos((current) => [...current, ...next]);
+    setPhotos((current) => appendPickedPhotos(current, next));
   }
 
   async function onCamera() {
@@ -240,7 +244,7 @@ export function AddReadingForm({
     }
     setSaving(true);
     try {
-      const nextPhotos = await resolveUploadedMealPhotos(photos, async (photo) => {
+      const nextPhotos = await resolveUploadedMealPhotos(distinctPhotos(photos), async (photo) => {
         if (photo.localUri && !photo.storageId) {
           if (uploadPhoto) {
             try {

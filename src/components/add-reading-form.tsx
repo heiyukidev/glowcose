@@ -52,6 +52,8 @@ import {
 } from "@/lib/glucose";
 import {
   MAX_MEAL_PHOTOS,
+  appendPickedPhotos,
+  distinctPhotos,
   formMealKey,
   mealMediaForForm,
   photosAfterMealChange,
@@ -119,6 +121,7 @@ type FormPhoto = {
   url: string;
   blob?: Blob;
   storageId?: string;
+  sourceKey?: string;
 };
 
 export function AddReadingForm({
@@ -219,10 +222,14 @@ export function AddReadingForm({
       const next = await Promise.all(
         map(selected, async (file) => {
           const blob = await fileToJpegBlob(file);
-          return { url: URL.createObjectURL(blob), blob };
+          return {
+            url: URL.createObjectURL(blob),
+            blob,
+            sourceKey: `${file.name}:${file.size}:${file.lastModified}`,
+          };
         }),
       );
-      setPhotos((current) => [...current, ...next]);
+      setPhotos((current) => appendPickedPhotos(current, next));
     } catch {
       toast.error(t("form.photoUnreadable"));
     }
@@ -272,7 +279,7 @@ export function AddReadingForm({
     }
     setSaving(true);
     try {
-      const nextPhotos = await resolveUploadedMealPhotos(photos, async (photo) => {
+      const nextPhotos = await resolveUploadedMealPhotos(distinctPhotos(photos), async (photo) => {
         if (photo.blob) {
           if (uploadPhoto) {
             try {

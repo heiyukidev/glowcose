@@ -116,8 +116,34 @@ export function mergeMealPhotos(
   return take(merged, MAX_MEAL_PHOTOS);
 }
 
+type PhotoIdentity = {
+  storageId?: string;
+  url?: string;
+  localUri?: string;
+  sourceKey?: string;
+};
+
+function photoIdentity(photo: PhotoIdentity, anon: { n: number }): string {
+  const key = photo.sourceKey || photo.localUri || photoKey(photo);
+  if (key) return key;
+  anon.n += 1;
+  return `anon:${anon.n}`;
+}
+
+export function distinctPhotos<T extends PhotoIdentity>(photos: T[]): T[] {
+  const anon = { n: 0 };
+  return uniqBy(photos, (photo) => photoIdentity(photo, anon));
+}
+
+export function appendPickedPhotos<T extends PhotoIdentity>(
+  current: T[],
+  picked: T[],
+): T[] {
+  return take(distinctPhotos(concat(current, picked)), MAX_MEAL_PHOTOS);
+}
+
 export function assignedPhotos(photos?: MealPhoto[]): MealPhoto[] {
-  return take(photos ?? [], MAX_MEAL_PHOTOS);
+  return take(distinctPhotos(photos ?? []), MAX_MEAL_PHOTOS);
 }
 
 export function photosFromLegacy(input: {
@@ -524,7 +550,10 @@ export function photosAfterMealChange<
   },
 >(current: T[], mealPhotosAsForm: T[]): T[] {
   const pending = filter(current, isPendingFormPhoto);
-  return take(concat(mealPhotosAsForm, pending), MAX_MEAL_PHOTOS);
+  return take(
+    distinctPhotos(concat(mealPhotosAsForm, pending)),
+    MAX_MEAL_PHOTOS,
+  );
 }
 
 export const MEAL_SLOT_LABELS: Record<MealSlot, string> = {
