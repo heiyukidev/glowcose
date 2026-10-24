@@ -97,7 +97,9 @@ function MealSideCell({
         <Text style={[styles.value, { color: EMPTY_SURFACE.color }]}>
           {t("meal.emptyValue")}
         </Text>
-        <Text style={[styles.plus, { color: EMPTY_SURFACE.color }]}>+</Text>
+        <Text style={[styles.plus, { color: EMPTY_SURFACE.color }]}>
+          {side === "before" ? t("meal.before") : t("meal.after")}
+        </Text>
       </Pressable>
     );
   }

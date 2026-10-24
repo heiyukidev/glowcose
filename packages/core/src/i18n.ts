@@ -68,6 +68,8 @@ const FRENCH_MESSAGES = {
   "meal.addBefore": "Ajouter avant le repas",
   "meal.addAfter": "Ajouter après le repas",
   "meal.addOther": "Ajouter Autre",
+  "meal.before": "Avant",
+  "meal.after": "Après",
   "meal.emptyValue": "—",
   "clash.yours": "Votre mesure",
   "clash.shared": "Déjà sur le carnet : {{value}}",

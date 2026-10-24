@@ -118,9 +118,11 @@ const styles = StyleSheet.create({
     flex: 1,
     height: "100%",
     justifyContent: "flex-end",
+    alignItems: "center",
   },
   bar: {
     width: "100%",
+    maxWidth: 10,
     borderRadius: 4,
     minHeight: 4,
   },

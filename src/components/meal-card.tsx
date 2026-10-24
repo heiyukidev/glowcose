@@ -72,14 +72,16 @@ function MealSideCell({
         href={href}
         aria-label={label}
         className={cn(
-          "flex min-h-[5.5rem] flex-1 flex-col items-center justify-center rounded-xl px-2 py-3 transition-colors active:translate-y-px",
+          "flex min-h-[4.5rem] flex-1 flex-col items-center justify-center rounded-xl px-2 py-3 transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px",
           EMPTY_SURFACE,
         )}
       >
         <span className="font-display text-3xl leading-none tracking-tight">
           {t("meal.emptyValue")}
         </span>
-        <span className="mt-1 text-xs font-medium opacity-80">+</span>
+        <span className="mt-1 text-xs font-medium">
+          {side === "before" ? t("meal.before") : t("meal.after")}
+        </span>
       </Link>
     );
   }
@@ -96,7 +98,7 @@ function MealSideCell({
       href={href}
       aria-label={`${label} · ${formatInputValue(reading.valueMgDl, settings.unit)}`}
       className={cn(
-        "flex min-h-[5.5rem] flex-1 flex-col items-center justify-center rounded-xl px-2 py-3 transition-colors active:translate-y-px",
+        "flex min-h-[4.5rem] flex-1 flex-col items-center justify-center rounded-xl px-2 py-3 transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px",
         STATUS_SURFACE[status],
       )}
     >

@@ -290,9 +290,10 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   mealTitle: {
-    fontSize: 17,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "500",
     color: colors.foreground,
+    fontFamily: "Georgia",
   },
   mealNote: {
     fontSize: 13,

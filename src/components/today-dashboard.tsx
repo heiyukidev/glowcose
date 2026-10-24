@@ -26,11 +26,9 @@ import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const TONE_CLASS: Record<DayScoreTone, string> = {
-  green:
-    "bg-[var(--status-in)]/20 text-[var(--status-in-fg)] shadow-[0_0_18px_color-mix(in_oklch,var(--status-in)_70%,transparent)]",
-  yellow:
-    "bg-[var(--status-high)]/25 text-[var(--status-high-fg)] shadow-[0_0_18px_color-mix(in_oklch,var(--status-high)_75%,transparent)]",
-  red: "bg-[var(--status-alert)]/20 text-[var(--status-alert-fg)] shadow-[0_0_18px_color-mix(in_oklch,var(--status-alert)_70%,transparent)]",
+  green: "bg-[var(--status-in)]/20 text-[var(--status-in-fg)]",
+  yellow: "bg-[var(--status-high)]/25 text-[var(--status-high-fg)]",
+  red: "bg-[var(--status-alert)]/20 text-[var(--status-alert-fg)]",
 };
 
 export function TodayDashboard() {
@@ -70,23 +68,23 @@ export function TodayDashboard() {
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pb-8">
       <AppHeader />
-      <section className="relative z-20 flex h-14 items-center pb-1">
+      <section className="relative z-20 grid h-14 grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-2">
         <DayStep
           label={t("home.previousDay")}
           onClick={() => setDay((current) => shiftLocalDay(current, -1))}
         >
           <ChevronLeft className="size-5" />
         </DayStep>
-        <h1 className="pointer-events-none absolute inset-x-0 text-center font-display text-3xl leading-none tracking-tight">
+        <h1 className="min-w-0 text-center font-display text-3xl leading-none tracking-tight">
           {label}
         </h1>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center gap-2">
           {tone ? (
             <span className="group relative">
               <button
                 type="button"
                 className={cn(
-                  "flex size-12 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold",
+                  "flex size-12 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
                   TONE_CLASS[tone],
                 )}
                 aria-label={tooltip}
@@ -154,7 +152,7 @@ function DayStep({
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className="relative z-10 flex size-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-card text-foreground shadow-sm disabled:opacity-35"
+      className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-card text-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:opacity-35"
     >
       {children}
     </button>
